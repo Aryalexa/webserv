@@ -1,0 +1,127 @@
+#ifndef ServerParser_HPP
+#define ServerParser_HPP
+
+#include "../headers/WebServ.hpp"
+
+#define SYNTAX_ERR_HOST "Syntax Error: host"
+#define SYNTAX_ERR_ROOT "Syntax Error: root"
+#define SYNTAX_ERR_PORT "Syntax Error: port"
+#define SYNTAX_ERR_CLIENT_MAX_SIZE "Syntax Error: client_max_body_size"
+#define SYNTAX_ERR_AUTOINDEX "Syntax Error: autoindex"
+#define TOKEN_ERR "Error: Invalid Token"
+#define PAGE_ERR_INIT "Error: Page Initialization Failed"
+#define PAGE_ERR_CODE "Error: Code is Invalid"
+#define INCORRECT_ERR_CODE "Incorrect Error Code: "
+#define INCORRECT_ERR_PATH "Incorrect Path for Error File: "
+#define ROOT_DUP_ERR "Error: Root of Location is Duplicated"
+#define METHODS_DUP_ERR "Error: Allow Methods of Location is Duplicated"
+#define AUTOINDEX_DUP_ERR "Error: AutoIndex of Location is Duplicated"
+#define AUTOINDEX_ERR_CGI "Error: AutoIndex Not Allowed for CGI"
+#define INDEX_DUP_ERR "Error: Index of Location is Duplicated"
+#define RETURN_DUP_ERR "Error: Return of Location is Duplicated"
+#define RETURN_ERR_CGI "Error: Return Not Allowed for CGI"
+#define ALIAS_DUP_ERR "Error: Alias of Location is Duplicated"
+#define ALIAS_ERR_CGI "Error: Alias Not Allowed for CGI"
+#define CMBS_DUP_ERR "Error: Client Max Body Size of Location is Duplicated"
+#define INVLAID_CGI_ERR "Error: cgi_path is Invalid"
+#define CGI_ERR_VALIDATION "Failed CGI Validation"
+#define LOCATION_ERR_VALIDATION "Failed Location Validation"
+#define REDIRECTION_ERR_VALIDATION "Failed Redirection Validation"
+#define ALIAS_ERR_VALIDATION "Failed Alias Validation"
+#define ERR_PAGE_ERR "Error: Error Page Does Not Exist"
+#define LOCATION_ERR "Error: Path to Location Not Found"
+
+#define UNDEFINED "Undefined"
+#define UNACCESSIBLE "Unaccessible"
+
+#define ROOT "root"
+#define ALLOW_METHODS "allow_methods"
+#define METHODS "methods"
+#define AUTOINDEX "autoindex"
+#define INDEX "index"
+#define RETURN "return"
+#define ALIAS "alias"
+#define CGI_EXIT "cgi_ext"
+#define CGI_PATH "cgi_path"
+#define CGI_BIN_PATH "/cgi-bin"
+#define CMBS "client_max_body_size"
+
+
+
+class Location;
+
+class ServerParser
+{
+	private:
+		uint16_t						_port;
+		in_addr_t						_host;
+		std::string						_server_name;
+		std::string						_root;
+		unsigned long					_client_max_body_size;
+		std::string						_index;
+		bool							_autoindex;
+		std::map<short, std::string>	_error_list;
+		int     						_listen_fd;
+		std::vector<Location> 			_locations;
+		struct sockaddr_in 				_server_address;
+
+	public:
+		ServerParser();
+		~ServerParser(); 
+		ServerParser(const ServerParser &other);
+		ServerParser &operator=(const ServerParser & rhs);
+
+		void                                    setServerName(std::string server_name);
+		void                                    setHost(std::string parameter);
+		void                                    setRoot(std::string root);
+		void                                    setPort(std::string token);
+		void                                    setClientMaxBodySize(std::string token);
+		void                                    setErrorPages(std::vector<std::string> &token);
+		void                                    setIndex(std::string index);
+		void                                    setLocation(std::string nameLocation, std::vector<std::string> token);
+		void                                    setAutoindex(std::string autoindex);
+
+		bool                                    isValidHost(std::string host) const;
+		bool                                    isValidErrorPages();
+		int                                     isValidLocation(Location &location) const;
+
+		const std::string                       &getServerName();
+		const uint16_t                          &getPort(); 
+		const in_addr_t                         &getHost();
+		const size_t                            &getClientMaxBodySize(); 
+		const std::string                       &getRoot(); 
+		const std::vector<Location>             &getLocations();
+		const std::map<short, std::string>      &getErrorPages();
+		const std::string                       &getIndexFiles();
+		const std::string						&getIndex();
+		const bool                              &getAutoindex(); 
+		const std::string                       &getPathErrorPage(short key); 
+		const std::vector<Location>::iterator   getLocationKey(std::string key);
+
+		int										getFd();
+		void                                    setFd(int);
+		
+		void                                    initErrorPages(void);
+		static void                             checkSemicolon(std::string &token);
+		bool                                    checkLocations() const;
+		void									setUpServer();
+
+		int 									ft_stoi(std::string str);
+		
+		class ErrorException : public std::exception
+		{
+			private:
+				std::string _message;
+
+			public:
+				ErrorException(std::string message) throw() {
+					_message = ERROR_SERV_PARSER + message;
+				}
+				virtual const char* what() const throw() {
+					return (_message.c_str());
+				}
+				virtual ~ErrorException() throw() {}
+		};
+};
+
+#endif

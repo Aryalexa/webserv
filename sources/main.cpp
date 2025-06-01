@@ -8,16 +8,14 @@ int main(int argc, char **argv)
 		try 
 		{
 			std::string config;
-            if (argc == 1) 
-            {
+            if (argc == 1) {
                 config = "config/default.conf";
-            } else 
-            {
+            } else {
                 config = argv[1];
             }
 		}
 		catch (std::exception &e)
-        {
+		{
 			std::cerr << e.what() << std::endl;
 			return (ERROR);
 		}

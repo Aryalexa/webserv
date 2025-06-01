@@ -37,7 +37,17 @@
 # include <sys/select.h>
 # include <arpa/inet.h>
 
-# define SUCCESS 0
-# define ERROR 1
+#include "../headers/Message.hpp"
+#include "../headers/LocationParser.hpp"
+#include "../headers/ConfigFile.hpp"
+
+# define SUCCESS    0
+# define ERROR      1
+
+# define MAX_CONTENT_LENGTH 30000000
+
+# define ERROR_SERV_PARSER "Error in our ServerParser: "
+
+std::string statusCodeString(short);
 
 # endif
