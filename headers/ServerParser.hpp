@@ -46,8 +46,6 @@
 #define CGI_BIN_PATH "/cgi-bin"
 #define CMBS "client_max_body_size"
 
-
-
 class Location;
 
 class ServerParser
