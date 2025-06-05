@@ -1,3 +1,5 @@
+$(info ***  CXX = $(CXX)  ***)
+
 NAME := webserv
 
 SRCS := $(wildcard sources/*.cpp)

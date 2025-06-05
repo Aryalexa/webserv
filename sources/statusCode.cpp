@@ -110,3 +110,18 @@ std::string statusCodeString(short statusCode)
             return "Undefined";
         }
 }
+
+int     ft_stoi(std::string str)
+{
+	std::stringstream ss(str);
+	if (str.length() > 10)
+		throw std::exception();
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		if(!isdigit(str[i]))
+			throw std::exception();
+	}
+	int res;
+	ss >> res;
+	return (res);
+}

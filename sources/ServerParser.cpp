@@ -1,4 +1,4 @@
-#include "../headers/ServerParser.hpp"
+#include "../headers/WebServ.hpp"
 
 ServerParser::ServerParser() // Check
 {
@@ -383,7 +383,7 @@ int ServerParser::isValidLocation(Location &location) const // Check
 				if (tmp == ".py" || tmp == "*.py")
 				{
 					if (tmp_path.find("python") != std::string::npos)
-						location._ext_path.insert(std::make_pair(".py", tmp_path));
+						location._ext_path.insert( std::make_pair(std::string(".py"), tmp_path) );
 				}
 				else if (tmp == ".sh" || tmp == "*.sh")
 				{
@@ -551,19 +551,4 @@ void	ServerParser::setUpServer(void)
 		Message::logError("WebServ: Bind Error %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-}
-
-int ft_stoi(std::string str)
-{
-	std::stringstream ss(str);
-	if (str.length() > 10)
-		throw std::exception();
-	for (size_t i = 0; i < str.length(); ++i)
-	{
-		if(!isdigit(str[i]))
-			throw std::exception();
-	}
-	int res;
-	ss >> res;
-	return (res);
 }

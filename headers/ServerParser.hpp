@@ -30,7 +30,7 @@
 #define ALIAS_ERR_VALIDATION "Failed Alias Validation"
 #define ERR_PAGE_ERR "Error: Error Page Does Not Exist"
 #define LOCATION_ERR "Error: Path to Location Not Found"
-
+#define ERROR_SERV_PARSER "Error in our ServerParser: "
 #define UNDEFINED "Undefined"
 #define UNACCESSIBLE "Unaccessible"
 
@@ -103,8 +103,6 @@ class ServerParser
 		static void                             checkSemicolon(std::string &token);
 		bool                                    checkLocations() const;
 		void									setUpServer();
-
-		int 									ft_stoi(std::string str);
 		
 		class ErrorException : public std::exception
 		{

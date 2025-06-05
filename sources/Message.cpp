@@ -1,4 +1,5 @@
 #include "../headers/Message.hpp"
+#include "../headers/WebServ.hpp"
 
 void Message::logError(const char* msg, ...)
 {

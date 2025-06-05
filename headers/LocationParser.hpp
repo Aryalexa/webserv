@@ -3,6 +3,10 @@
 
 #include "../headers/WebServ.hpp"
 
+#define ERR_ROOR_LOCATION "Error: Root of Location"
+#define ERR_SUPPORT_METHOD "Error: Allow Method not Supported "
+#define AUTOINDEX_ERR "Error: Review Autoindex"
+
 class Location
 {
 	private:

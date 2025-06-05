@@ -1,10 +1,6 @@
 #ifndef MESSAGE_HPP
 #define MESSAGE_HPP
 
-#include <iostream>
-#include <cstdarg>
-#include <cstdio>
-
 #define RESET "\x1B[0m"
 #define RED   "\x1B[31m"
 
