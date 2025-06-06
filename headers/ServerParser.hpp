@@ -31,6 +31,11 @@
 #define ERR_PAGE_ERR "Error: Error Page Does Not Exist"
 #define LOCATION_ERR "Error: Path to Location Not Found"
 #define ERROR_SERV_PARSER "Error in our ServerParser: "
+#define SOCKET_ERR "Error: socket() failed: "
+#define SET_SOCKET_ERR "Error: setsockopt() failed: "
+#define BIND_ERR "Error: bind() failed: "
+
+
 #define UNDEFINED "Undefined"
 #define UNACCESSIBLE "Unaccessible"
 

@@ -532,25 +532,22 @@ bool ServerParser::checkLocations() const // Check
 	return (false);
 }
 
-/*
-void	ServerParser::setUpServer(void)
+void ServerParser::setUpServer()
 {
-	if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0) )  == -1 )
-	{
-		Message::logError("WebServ: Socket Error %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    _listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (_listen_fd == -1)
+        throw ErrorException(std::string(SOCKET_ERR) + strerror(errno));
 
-	int option_value = 1;
-	setsockopt(_listen_fd, SOL_SOCKET, SO_REUSEADDR, &option_value, sizeof(int));
-	memset(&_server_address, 0, sizeof(_server_address));
-	_server_address.sin_family = AF_INET;
-	_server_address.sin_addr.s_addr = _host;
-	_server_address.sin_port = htons(_port);
-	if (bind(_listen_fd, (struct sockaddr *) &_server_address, sizeof(_server_address)) == -1)
-	{
-		Message::logError("WebServ: Bind Error %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    int opt = 1;
+    if (setsockopt(_listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+        throw ErrorException(std::string(SET_SOCKET_ERR) + strerror(errno));
+
+    memset(&_server_address, 0, sizeof(_server_address));
+    _server_address.sin_family = AF_INET;
+    _server_address.sin_addr.s_addr = _host;
+    _server_address.sin_port = htons(_port); 
+
+    if (bind(_listen_fd, reinterpret_cast<sockaddr*>(&_server_address),
+             sizeof(_server_address)) == -1)
+        throw ErrorException(std::string(BIND_ERR) + strerror(errno));
 }
-*/
