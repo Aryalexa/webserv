@@ -53,16 +53,16 @@ Location &Location::operator=(const Location &rhs)
 
 Location::~Location() { }
 
-void Location::setPath(std::string parametr)
+void Location::setPath(std::string token)
 {
-	this->_path = parametr;
+	this->_path = token;
 }
 
-void Location::setRootLocation(std::string parametr)
+void Location::setRootLocation(std::string token)
 {
-	if (ConfigFile::getTypePath(parametr) != 2)
+	if (ConfigFile::getTypePath(token) != 2)
 		throw ServerParser::ErrorException(ERR_ROOR_LOCATION);
-	this->_root = parametr;
+	this->_root = token;
 }
 
 void Location::setMethods(std::vector<std::string> methods)
@@ -90,27 +90,27 @@ void Location::setMethods(std::vector<std::string> methods)
 	}
 }
 
-void Location::setAutoindex(std::string parametr)
+void Location::setAutoindex(std::string token)
 {
-	if (parametr == "on" || parametr == "off")
-		this->_autoindex = (parametr == "on");
+	if (token == "on" || token == "off")
+		this->_autoindex = (token == "on");
 	else
 		throw ServerParser::ErrorException(AUTOINDEX_ERR);
 }
 
-void Location::setIndexLocation(std::string parametr)
+void Location::setIndexLocation(std::string token)
 {
-	this->_index = parametr;
+	this->_index = token;
 }
 
-void Location::setReturn(std::string parametr)
+void Location::setReturn(std::string token)
 {
-	this->_return = parametr;
+	this->_return = token;
 }
 
-void Location::setAlias(std::string parametr)
+void Location::setAlias(std::string token)
 {
-	this->_alias = parametr;
+	this->_alias = token;
 }
 
 void Location::setCgiPath(std::vector<std::string> path)
@@ -123,24 +123,24 @@ void Location::setCgiExtension(std::vector<std::string> extension)
 	this->_cgi_ext = extension;
 }
 
-void Location::setMaxBodySize(std::string parametr)
+void Location::setMaxBodySize(std::string token)
 {
 	unsigned long body_size = 0;
 
-	for (size_t i = 0; i < parametr.length(); i++)
+	for (size_t i = 0; i < token.length(); i++)
 	{
-		if (parametr[i] < '0' || parametr[i] > '9')
+		if (token[i] < '0' || token[i] > '9')
 			throw ServerParser::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
 	}
-	if (!ft_stoi(parametr))
+	if (!ft_stoi(token))
 		throw ServerParser::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
-	body_size = ft_stoi(parametr);
+	body_size = ft_stoi(token);
 	this->_client_max_body_size = body_size;
 }
 
-void Location::setMaxBodySize(unsigned long parametr)
+void Location::setMaxBodySize(unsigned long token)
 {
-	this->_client_max_body_size = parametr;
+	this->_client_max_body_size = token;
 }
 
 const std::string &Location::getPath() const

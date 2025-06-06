@@ -532,6 +532,7 @@ bool ServerParser::checkLocations() const // Check
 	return (false);
 }
 
+/*
 void	ServerParser::setUpServer(void)
 {
 	if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0) )  == -1 )
@@ -552,3 +553,4 @@ void	ServerParser::setUpServer(void)
 		exit(EXIT_FAILURE);
 	}
 }
+*/

@@ -59,8 +59,8 @@ class ServerParser
 		std::string						_index;
 		bool							_autoindex;
 		std::map<short, std::string>	_error_list;
-		int     						_listen_fd;
 		std::vector<Location> 			_locations;
+		int     						_listen_fd;
 		struct sockaddr_in 				_server_address;
 
 	public:
@@ -102,7 +102,6 @@ class ServerParser
 		void                                    initErrorPages(void);
 		static void                             checkSemicolon(std::string &token);
 		bool                                    checkLocations() const;
-		void									setUpServer();
 		
 		class ErrorException : public std::exception
 		{
