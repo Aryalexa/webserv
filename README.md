@@ -85,21 +85,23 @@ Validar y gestionar rutas y archivos en el sistema operativo.
 
 ## Integración de las Clases (Visualmente)
 
-Archivo de configuración
-      │
-      ▼
-┌─────────────┐
-│ ReadConfig  │
-└─────┬───────┘
-      │
-      ▼
-┌─────────────┐
-│ServerParser │
-└─────┬───────┘
-      │
-   ┌──┴───┐
-   ▼      ▼
-Location ConfigFile
+    Archivo de configuración
+               │
+               ▼
+       ┌───────────────┐
+       │  ReadConfig   │
+       └───────┬───────┘
+               │
+               ▼
+       ┌───────────────┐
+       │ ServerParser  │
+       └───┬───────────┘
+           │
+     ┌─────┴───────┐
+     ▼             ▼
+    Location     ConfigFile
+
+## Resumen
 
 | Clase          | Tarea principal                           | Rol en runtime                                 |
 | -------------- | ----------------------------------------- | ---------------------------------------------- |
