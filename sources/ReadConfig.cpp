@@ -26,10 +26,10 @@ int ReadConfig::print_debug_parser()
 			++it;
 		}
 		std::cout << "Locations: " << _servers[i].getLocations().size() << std::endl;
-		std::vector<Location>::const_iterator itl = _servers[i].getLocations().begin();
+		std::vector<LocationParser>::const_iterator itl = _servers[i].getLocations().begin();
 		while (itl != _servers[i].getLocations().end())
 		{
-			std::cout << "Location: " << itl->getPath() << std::endl;
+			std::cout << "LocationParser: " << itl->getPath() << std::endl;
 			std::cout << "Methods:\n" << itl->getPrintMethods() << std::endl;
 			std::cout << "Index: " << itl->getIndexLocation() << std::endl;
 			if (itl->getCgiPath().empty())

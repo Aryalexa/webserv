@@ -3,10 +3,10 @@
 
 #include "../headers/WebServ.hpp"
 
-#define ERR_ROOR_LOCATION "Error: Root of Location"
+#define ERR_ROOR_LOCATION "Error: Root of LocationParser"
 #define ERR_SUPPORT_METHOD "Error: Allow Method not Supported "
 
-class Location
+class LocationParser
 {
 	private:
 		std::string					_path;
@@ -21,10 +21,10 @@ class Location
 		unsigned long				_client_max_body_size;
 
 	public:
-		Location();
-		Location(const Location &other);
-		Location &operator=(const Location &rhs);
-		~Location();
+		LocationParser();
+		LocationParser(const LocationParser &other);
+		LocationParser &operator=(const LocationParser &rhs);
+		~LocationParser();
 
 		std::map<std::string, std::string> _ext_path;
 

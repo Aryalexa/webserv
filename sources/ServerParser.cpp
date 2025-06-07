@@ -195,7 +195,7 @@ void ServerParser::setErrorPages(std::vector<std::string> &token) // Check
 
 void ServerParser::setLocation(std::string path, std::vector<std::string> token) // Check
 {
-	Location new_location;
+	LocationParser new_location;
 
 	std::vector<std::string> methods;
 	bool flag_methods = false;
@@ -343,7 +343,7 @@ void ServerParser::setLocation(std::string path, std::vector<std::string> token)
 	this->_locations.push_back(new_location);
 }
 
-int ServerParser::isValidLocation(Location &location) const // Check
+int ServerParser::isValidLocation(LocationParser &location) const // Check
 {
 	if (location.getPath() == CGI_BIN_PATH)
 	{
@@ -470,7 +470,7 @@ const size_t &ServerParser::getClientMaxBodySize() //Check
 	return (this->_client_max_body_size);
 }
 
-const std::vector<Location> &ServerParser::getLocations() //Check
+const std::vector<LocationParser> &ServerParser::getLocations() //Check
 {
 	return (this->_locations);
 }
@@ -498,9 +498,9 @@ const std::string &ServerParser::getPathErrorPage(short key) // Check
 	return (it->second);
 }
 
-const std::vector<Location>::iterator ServerParser::getLocationKey(std::string key) // Check 
+const std::vector<LocationParser>::iterator ServerParser::getLocationKey(std::string key) // Check 
 {
-	std::vector<Location>::iterator it;
+	std::vector<LocationParser>::iterator it;
 	for (it = this->_locations.begin(); it != this->_locations.end(); it++)
 	{
 		if (it->getPath() == key)
@@ -521,8 +521,8 @@ bool ServerParser::checkLocations() const // Check
 {
 	if (this->_locations.size() < 2)
 		return (false);
-	std::vector<Location>::const_iterator it1;
-	std::vector<Location>::const_iterator it2;
+	std::vector<LocationParser>::const_iterator it1;
+	std::vector<LocationParser>::const_iterator it2;
 	for (it1 = this->_locations.begin(); it1 != this->_locations.end() - 1; it1++) {
 		for (it2 = it1 + 1; it2 != this->_locations.end(); it2++) {
 			if (it1->getPath() == it2->getPath())

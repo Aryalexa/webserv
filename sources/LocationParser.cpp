@@ -1,6 +1,6 @@
 #include "../headers/WebServ.hpp"
 
-Location::Location()
+LocationParser::LocationParser()
 {
 	this->_path = "";
 	this->_root = "";
@@ -17,7 +17,7 @@ Location::Location()
 	this->_methods.push_back(0);
 }
 
-Location::Location(const Location &other)
+LocationParser::LocationParser(const LocationParser &other)
 {
 	this->_path = other._path;
 	this->_root = other._root;
@@ -32,7 +32,7 @@ Location::Location(const Location &other)
 	this->_client_max_body_size = other._client_max_body_size;
 }
 
-Location &Location::operator=(const Location &rhs)
+LocationParser &LocationParser::operator=(const LocationParser &rhs)
 {
 	if (this != &rhs)
 	{
@@ -51,21 +51,21 @@ Location &Location::operator=(const Location &rhs)
 	return (*this);
 }
 
-Location::~Location() { }
+LocationParser::~LocationParser() { }
 
-void Location::setPath(std::string token)
+void LocationParser::setPath(std::string token)
 {
 	this->_path = token;
 }
 
-void Location::setRootLocation(std::string token)
+void LocationParser::setRootLocation(std::string token)
 {
 	if (ConfigFile::getTypePath(token) != 2)
 		throw ServerParser::ErrorException(ERR_ROOR_LOCATION);
 	this->_root = token;
 }
 
-void Location::setMethods(std::vector<std::string> methods)
+void LocationParser::setMethods(std::vector<std::string> methods)
 {
 	this->_methods[0] = 0;
 	this->_methods[1] = 0;
@@ -90,7 +90,7 @@ void Location::setMethods(std::vector<std::string> methods)
 	}
 }
 
-void Location::setAutoindex(std::string token)
+void LocationParser::setAutoindex(std::string token)
 {
 	if (token == "on" || token == "off")
 		this->_autoindex = (token == "on");
@@ -98,32 +98,32 @@ void Location::setAutoindex(std::string token)
 		throw ServerParser::ErrorException(AUTOINDEX_ERR);
 }
 
-void Location::setIndexLocation(std::string token)
+void LocationParser::setIndexLocation(std::string token)
 {
 	this->_index = token;
 }
 
-void Location::setReturn(std::string token)
+void LocationParser::setReturn(std::string token)
 {
 	this->_return = token;
 }
 
-void Location::setAlias(std::string token)
+void LocationParser::setAlias(std::string token)
 {
 	this->_alias = token;
 }
 
-void Location::setCgiPath(std::vector<std::string> path)
+void LocationParser::setCgiPath(std::vector<std::string> path)
 {
 	this->_cgi_path = path;
 }
 
-void Location::setCgiExtension(std::vector<std::string> extension)
+void LocationParser::setCgiExtension(std::vector<std::string> extension)
 {
 	this->_cgi_ext = extension;
 }
 
-void Location::setMaxBodySize(std::string token)
+void LocationParser::setMaxBodySize(std::string token)
 {
 	unsigned long body_size = 0;
 
@@ -138,67 +138,67 @@ void Location::setMaxBodySize(std::string token)
 	this->_client_max_body_size = body_size;
 }
 
-void Location::setMaxBodySize(unsigned long token)
+void LocationParser::setMaxBodySize(unsigned long token)
 {
 	this->_client_max_body_size = token;
 }
 
-const std::string &Location::getPath() const
+const std::string &LocationParser::getPath() const
 {
 	return (this->_path);
 }
 
-const std::string &Location::getRootLocation() const
+const std::string &LocationParser::getRootLocation() const
 {
 	return (this->_root);
 }
 
-const std::string &Location::getIndexLocation() const
+const std::string &LocationParser::getIndexLocation() const
 {
 	return (this->_index);
 }
 
-const std::vector<short> &Location::getMethods() const
+const std::vector<short> &LocationParser::getMethods() const
 {
 	return (this->_methods);
 }
 
-const std::vector<std::string> &Location::getCgiPath() const
+const std::vector<std::string> &LocationParser::getCgiPath() const
 {
 	return (this->_cgi_path);
 }
 
-const std::vector<std::string> &Location::getCgiExtension() const
+const std::vector<std::string> &LocationParser::getCgiExtension() const
 {
 	return (this->_cgi_ext);
 }
 
-const bool &Location::getAutoindex() const
+const bool &LocationParser::getAutoindex() const
 {
 	return (this->_autoindex);
 }
 
-const std::string &Location::getReturn() const
+const std::string &LocationParser::getReturn() const
 {
 	return (this->_return);
 }
 
-const std::string &Location::getAlias() const
+const std::string &LocationParser::getAlias() const
 {
 	return (this->_alias);
 }
 
-const std::map<std::string, std::string> &Location::getExtensionPath() const
+const std::map<std::string, std::string> &LocationParser::getExtensionPath() const
 {
 	return (this->_ext_path);
 }
 
-const unsigned long &Location::getMaxBodySize() const
+const unsigned long &LocationParser::getMaxBodySize() const
 {
 	return (this->_client_max_body_size);
 }
 
-std::string Location::getPrintMethods() const
+std::string LocationParser::getPrintMethods() const
 {
 	std::string res;
 	if (_methods[4])

@@ -50,7 +50,7 @@
 # define ERROR      1
 
 # define MAX_CONTENT_LENGTH 30000000
-# define USAGE "Usage: ./webserv [config_file]"
+# define USAGE "Usage: ./WebServ [config_file]"
 
 std::string statusCodeString(short);
 int 		ft_stoi(std::string str);
