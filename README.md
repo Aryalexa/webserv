@@ -99,7 +99,7 @@ Validar y gestionar rutas y archivos en el sistema operativo.
            │
      ┌─────┴───────┐
      ▼             ▼
-    Location     ConfigFile
+    LocationParser     ConfigFile
 
 ## Resumen
 
