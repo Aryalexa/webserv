@@ -44,11 +44,13 @@
 #include "../headers/ServerParser.hpp"
 #include "../headers/LocationParser.hpp"
 #include "../headers/ConfigFile.hpp"
+#include "../headers/ReadConfig.hpp"
 
 # define SUCCESS    0
 # define ERROR      1
 
 # define MAX_CONTENT_LENGTH 30000000
+# define USAGE "Usage: ./webserv [config_file]"
 
 std::string statusCodeString(short);
 int 		ft_stoi(std::string str);

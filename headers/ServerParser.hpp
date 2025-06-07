@@ -16,7 +16,6 @@
 #define ROOT_DUP_ERR "Error: Root of Location is Duplicated"
 #define METHODS_DUP_ERR "Error: Allow Methods of Location is Duplicated"
 #define AUTOINDEX_DUP_ERR "Error: AutoIndex of Location is Duplicated"
-#define AUTOINDEX_ERR_CGI "Error: AutoIndex Not Allowed for CGI"
 #define INDEX_DUP_ERR "Error: Index of Location is Duplicated"
 #define RETURN_DUP_ERR "Error: Return of Location is Duplicated"
 #define RETURN_ERR_CGI "Error: Return Not Allowed for CGI"
@@ -107,6 +106,8 @@ class ServerParser
 		void                                    initErrorPages(void);
 		static void                             checkSemicolon(std::string &token);
 		bool                                    checkLocations() const;
+	
+		void 									setUpServer(void);
 		
 		class ErrorException : public std::exception
 		{

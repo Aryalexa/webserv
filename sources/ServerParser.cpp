@@ -242,7 +242,7 @@ void ServerParser::setLocation(std::string path, std::vector<std::string> token)
 		else if (token[i] == AUTOINDEX && (i + 1) < token.size())
 		{
 			if (path == CGI_BIN_PATH)
-				throw ErrorException(AUTOINDEX_ERR_CGI);
+				throw ErrorException(AUTOINDEX_ERR);
 			if (flag_autoindex)
 				throw ErrorException(AUTOINDEX_DUP_ERR);
 			checkSemicolon(token[++i]);

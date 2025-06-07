@@ -212,19 +212,19 @@ std::string Location::getPrintMethods() const
 	if (_methods[2])
 	{
 		if (!res.empty())
-			res.insert(0, ", ");
+			res.insert(0, "\n");
 		res.insert(0, "DELETE");
 	}
 	if (_methods[1])
 	{
 		if (!res.empty())
-			res.insert(0, ", ");
+			res.insert(0, "\n");
 		res.insert(0, "POST");
 	}
 	if (_methods[0])
 	{
 		if (!res.empty())
-			res.insert(0, ", ");
+			res.insert(0, "\n");
 		res.insert(0, "GET");
 	}
 	return (res);
