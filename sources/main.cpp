@@ -23,16 +23,8 @@ int main(int argc, char **argv)
 
             std::vector<ServerParser> servers = config_reader.getServers();
 
-			// Esta parte también es de Debug, no le hagan caso
-
-			/*
-			for (size_t i = 0; i < servers.size(); ++i)
-                servers[i].setUpServer();
-
-			ServerParser &server = servers[0];
-
-            std::cout << "Server listening on port: " << server.getPort() << std::endl;
-			*/
+            ServerManager manager;
+            manager.setUpServers(servers);
 
         }
         catch (const std::exception &e)

@@ -6,6 +6,7 @@
 
 class Message {
     public:
+        static void logMessage(const char* msg, ...);
         static void logError(const char* msg, ...);
 };
 

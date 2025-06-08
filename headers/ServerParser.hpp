@@ -63,7 +63,7 @@ class ServerParser
 		std::string						_index;
 		bool							_autoindex;
 		std::map<short, std::string>	_error_list;
-		std::vector<LocationParser> 			_locations;
+		std::vector<LocationParser> 	_locations;
 		int     						_listen_fd;
 		struct sockaddr_in 				_server_address;
 
@@ -73,41 +73,41 @@ class ServerParser
 		ServerParser(const ServerParser &other);
 		ServerParser &operator=(const ServerParser & rhs);
 
-		void                                    setServerName(std::string server_name);
-		void                                    setHost(std::string parameter);
-		void                                    setRoot(std::string root);
-		void                                    setPort(std::string token);
-		void                                    setClientMaxBodySize(std::string token);
-		void                                    setErrorPages(std::vector<std::string> &token);
-		void                                    setIndex(std::string index);
-		void                                    setLocation(std::string nameLocation, std::vector<std::string> token);
-		void                                    setAutoindex(std::string autoindex);
+		void                                    		setServerName(std::string server_name);
+		void                                    		setHost(std::string parameter);
+		void                                    		setRoot(std::string root);
+		void                                    		setPort(std::string token);
+		void                                    		setClientMaxBodySize(std::string token);
+		void                                    		setErrorPages(std::vector<std::string> &token);
+		void                                    		setIndex(std::string index);
+		void                                    		setLocation(std::string nameLocation, std::vector<std::string> token);
+		void                                    		setAutoindex(std::string autoindex);
 
-		bool                                    isValidHost(std::string host) const;
-		bool                                    isValidErrorPages();
-		int                                     isValidLocation(LocationParser &location) const;
+		bool                                    		isValidHost(std::string host) const;
+		bool                                    		isValidErrorPages();
+		int                                     		isValidLocation(LocationParser &location) const;
 
-		const std::string                       &getServerName();
-		const uint16_t                          &getPort(); 
-		const in_addr_t                         &getHost();
-		const size_t                            &getClientMaxBodySize(); 
-		const std::string                       &getRoot(); 
-		const std::vector<LocationParser>             &getLocations();
-		const std::map<short, std::string>      &getErrorPages();
-		const std::string                       &getIndexFiles();
-		const std::string						&getIndex();
-		const bool                              &getAutoindex(); 
-		const std::string                       &getPathErrorPage(short key); 
-		const std::vector<LocationParser>::iterator   getLocationKey(std::string key);
+		const std::string                       		&getServerName();
+		const uint16_t  								&getPort() const;
+		const in_addr_t									&getHost() const;
+		const size_t                            		&getClientMaxBodySize(); 
+		const std::string                       		&getRoot(); 
+		const std::vector<LocationParser>       		&getLocations();
+		const std::map<short, std::string>      		&getErrorPages();
+		const std::string                       		&getIndexFiles();
+		const std::string								&getIndex();
+		const bool                              		&getAutoindex(); 
+		const std::string                       		&getPathErrorPage(short key); 
+		const std::vector<LocationParser>::iterator		getLocationKey(std::string key);
 
-		int										getFd();
-		void                                    setFd(int);
+		int               								getFd() const;
+		void                                    		setFd(int);
 		
-		void                                    initErrorPages(void);
-		static void                             checkSemicolon(std::string &token);
-		bool                                    checkLocations() const;
+		void                                    		initErrorPages(void);
+		static void                             		checkSemicolon(std::string &token);
+		bool                                    		checkLocations() const;
 	
-		void 									setUpServer(void);
+		void 											setUpServer(void);
 		
 		class ErrorException : public std::exception
 		{

@@ -14,7 +14,7 @@
 #include <cstdio>
 #include <utility>
 
-#include <cstdlib>
+#include <cstdlib> 
 #include <fstream>
 #include <sstream>
 #include <cctype>
@@ -45,6 +45,7 @@
 #include "../headers/LocationParser.hpp"
 #include "../headers/ConfigFile.hpp"
 #include "../headers/ReadConfig.hpp"
+#include "../headers/ServerManager.hpp"
 
 # define SUCCESS    0
 # define ERROR      1

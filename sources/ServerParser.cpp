@@ -455,15 +455,9 @@ const bool &ServerParser::getAutoindex() //Check
 	return (this->_autoindex);
 }
 
-const in_addr_t &ServerParser::getHost() //Check
-{
-	return (this->_host);
-}
+const in_addr_t &ServerParser::getHost() const { return this->_host; }
 
-const uint16_t &ServerParser::getPort() //Check
-{
-	return (this->_port);
-}
+const uint16_t &ServerParser::getPort() const  { return this->_port; }
 
 const size_t &ServerParser::getClientMaxBodySize() //Check
 {
@@ -485,10 +479,7 @@ const std::string &ServerParser::getIndex() //Check
 	return (this->_index);
 }
 
-int   	ServerParser::getFd()  //Check
-{ 
-	return (this->_listen_fd); 
-}
+int ServerParser::getFd() const { return this->_listen_fd; }
 
 const std::string &ServerParser::getPathErrorPage(short key) // Check
 {
