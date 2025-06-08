@@ -308,5 +308,3 @@ Cuando el parser está completo o detecta un error, se marca el socket como “l
 │  (Next)           │  
 │  accept/read/write│  
 └───────────────────┘  
-
-```text
