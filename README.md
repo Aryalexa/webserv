@@ -111,6 +111,14 @@ Un envoltorio ligero para registro en estilo `printf`:
 ## Por qué importa
 Garantiza una salida de consola coherente en `main()`, `ServerManager` y todos los parsers, facilitando el seguimiento de la ejecución y la depuración de errores.
 
+### 1. **Capa de Ejecución**
+
+#### **Clases principales:**
+
+- **`ServerManager`**
+
+---
+
 # ServerManager
 
 ## Responsabilidad
