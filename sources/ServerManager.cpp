@@ -45,7 +45,7 @@ void ServerManager::setUpServers(const std::vector<ServerParser>& configs) {
     }
 }
 
-void ServerManager::initializeSets()
+void ServerManager::initializeSockets()
 {
 
     FD_ZERO(&_recv_fd_pool);

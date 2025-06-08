@@ -132,7 +132,7 @@ Convierte tu `std::vector<ServerParser>` en un conjunto de descriptores de archi
     - Registra la relación FD → `ServerParser` en `_servers_map`.  
     - Registra en log: `"Server X bound to IP:port, fd=..."`.  
 
-- **`initializeSets()`**  
+- **`initializeSockets()`**  
   - Llama a `listen()` y `fcntl(O_NONBLOCK)` en cada FD único.  
   - Ejecuta `FD_SET(fd, &_recv_fd_pool)` para cada descriptor.  
   - Mantiene actualizado `_biggest_fd` para la llamada a `select()`.
@@ -148,7 +148,7 @@ Ensambla todos los componentes y arranca el servidor:
 - Selecciona la ruta del archivo de configuración (por defecto o `argv[1]`).  
 - Llama a `ReadConfig::createServerGroup()`.  
 - Obtiene el `std::vector<ServerParser>`.  
-- Instancia `ServerManager`, ejecuta `setUpServers(...)` y `initializeSets()`.  
+- Instancia `ServerManager`, ejecuta `setUpServers(...)` y `initializeSockets()`.  
 - (Posteriormente) delega en `ServerManager::runServers()`.  
 - Captura y reporta cualquier excepción surgida durante el parseo o el binding.
 
@@ -185,7 +185,7 @@ Actúa como punto de entrada y coordina la lectura de la configuración, la inic
 - Recibe el vector de **ServerParser**, y para cada servidor:
   - Reusa o crea sockets con `socket()`/`bind()` (vía `ServerParser::setUpServer()`).  
   - Almacena la relación FD → `ServerParser` en `_servers_map`.  
-  - Prepara los `fd_set` con `initializeSets()`.  
+  - Prepara los `fd_set` con `initializeSockets()`.  
 - Usa **Message** para indicar progreso y errores.
 
 ```markdown
@@ -256,7 +256,7 @@ Actúa como punto de entrada y coordina la lectura de la configuración, la inic
       │    – reutiliza o llama a setUpServer()  
       │      (socket() + bind())  
       │    – guarda en map<fd,ServerParser>  
-      │ 2) initializeSets()  
+      │ 2) initializeSockets()  
       │    – listen(), non-blocking  
       │    – construye fd_sets para select()  
       ▼  

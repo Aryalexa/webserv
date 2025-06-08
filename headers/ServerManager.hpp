@@ -13,7 +13,7 @@ class ServerManager {
         ~ServerManager();
 
         void setUpServers(const std::vector<ServerParser>& servers);
-        void initializeSets();
+        void initializeSockets();
 
     private:
         std::vector<ServerParser>           _servers;
