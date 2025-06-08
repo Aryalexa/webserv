@@ -188,6 +188,50 @@ Actúa como punto de entrada y coordina la lectura de la configuración, la inic
   - Prepara los `fd_set` con `initializeSockets()`.  
 - Usa **Message** para indicar progreso y errores.
 
+# Siguientes Pasos
+
+## 1. Diseñar el Loop de Eventos (`runServers`)
+
+**Objetivo:**  
+Mantener vivo el servidor, aceptar conexiones y despachar I/O sin bloquear.
+
+**Tareas:**
+
+- Copiar los `fd_set` actuales en sets de trabajo en cada iteración.
+- Llamar a `select(_biggest_fd + 1, &recv_set, &write_set, NULL, &timeout)`.
+- Para cada descriptor activo:
+  - **Si es un socket de escucha:** llamar a `acceptNewConnection()`
+  - **Si es un cliente con datos de lectura:** llamar a `readRequest()`
+  - **Si es un cliente listo para escribir:** llamar a `sendResponse()`
+
+---
+
+## 2. Implementar `acceptNewConnection()`
+
+**Qué hace:**
+
+- Llama a `accept()` sobre el `listen_fd` para obtener un `client_fd`.
+- Configura ese `client_fd` en modo no bloqueante.
+- Lo añade a `_recv_fd_pool`.
+- Crea un objeto intermedio (por ejemplo, `Client`) donde se guarda el estado de la petición y la respuesta.
+
+---
+
+## 3. Escribir el Parser HTTP (`HttpRequest`)
+
+**Responsabilidad:**  
+Recibir bytes crudos y fragmentarlos en:
+
+1. Línea inicial (ej. `GET /foo HTTP/1.1`)
+2. Headers (hasta encontrar la doble línea en blanco)
+3. Body (si hay `Content-Length` o `Transfer-Encoding`)
+
+**Uso:**
+
+En `readRequest()`, se alimenta al parser con cada fragmento recibido vía `read()`.  
+Cuando el parser está completo o detecta un error, se marca el socket como “listo para respuesta”.
+
+
 ```markdown
 
 ┌───────────┐
