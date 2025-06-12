@@ -7,52 +7,6 @@ ReadConfig::ReadConfig()
 
 ReadConfig::~ReadConfig() { }
 
-int ReadConfig::print_debug_parser()
-{
-	for (size_t i = 0; i < _servers.size(); i++)
-	{
-		std::cout << "Server #" << i + 1 << std::endl;
-		std::cout << "Name: " << _servers[i].getServerName() << std::endl;
-		std::cout << "Host: " << _servers[i].getHost() << std::endl;
-		std::cout << "Root: " << _servers[i].getRoot() << std::endl;
-		std::cout << "Index: " << _servers[i].getIndex() << std::endl;
-		std::cout << "Port: " << _servers[i].getPort() << std::endl;
-		std::cout << "Max Client Body Size: " << _servers[i].getClientMaxBodySize() << std::endl;
-		std::cout << "Error pages: " << _servers[i].getErrorPages().size() << std::endl;
-		std::map<short, std::string>::const_iterator it = _servers[i].getErrorPages().begin();
-		while (it != _servers[i].getErrorPages().end())
-		{
-			std::cout << (*it).first << " : " << it->second << std::endl;
-			++it;
-		}
-		std::cout << "Locations: " << _servers[i].getLocations().size() << std::endl;
-		std::vector<LocationParser>::const_iterator itl = _servers[i].getLocations().begin();
-		while (itl != _servers[i].getLocations().end())
-		{
-			std::cout << "LocationParser: " << itl->getPath() << std::endl;
-			std::cout << "Methods:\n" << itl->getPrintMethods() << std::endl;
-			std::cout << "Index: " << itl->getIndexLocation() << std::endl;
-			if (itl->getCgiPath().empty())
-			{
-				std::cout << "Root: " << itl->getRootLocation() << std::endl;
-				if (!itl->getReturn().empty())
-					std::cout << "Return: " << itl->getReturn() << std::endl;
-				if (!itl->getAlias().empty())
-					std::cout << "Alias: " << itl->getAlias() << std::endl;
-			}
-			else
-			{
-				std::cout << "CGI Root: " << itl->getRootLocation() << std::endl;
-				std::cout << "CGI Path: " << itl->getCgiPath().size() << std::endl;
-				std::cout << "CGI Ext: " << itl->getCgiExtension().size() << std::endl;
-			}
-			++itl;
-		}
-		itl = _servers[i].getLocations().begin();
-	}
-	return (0);
-}
-
 int ReadConfig::createServerGroup(const std::string &config_file)
 {
 	std::string		content;
@@ -72,7 +26,7 @@ int ReadConfig::createServerGroup(const std::string &config_file)
 		throw ErrorException(SIZE_FILE_ERR);
 	for (size_t i = 0; i < this->_nb_server; i++)
 	{
-		ServerParser server;
+		ServerSetUp server;
 		createServer(this->_server_config[i], server);
 		this->_servers.push_back(server);
 	}
@@ -186,7 +140,7 @@ std::vector<std::string> splitTokens(const std::string& line, const std::string&
 }
 
 
-void ReadConfig::createServer(std::string &config, ServerParser &server)
+void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 {
 	std::vector<std::string>	tokens;
 	std::vector<std::string>	error_codes;
@@ -299,8 +253,8 @@ void ReadConfig::createServer(std::string &config, ServerParser &server)
 
 void ReadConfig::checkServers()
 {
-	std::vector<ServerParser>::iterator it1;
-	std::vector<ServerParser>::iterator it2;
+	std::vector<ServerSetUp>::iterator it1;
+	std::vector<ServerSetUp>::iterator it2;
 
 	for (it1 = this->_servers.begin(); it1 != this->_servers.end() - 1; it1++)
 	{
@@ -312,7 +266,7 @@ void ReadConfig::checkServers()
 	}
 }
 
-std::vector<ServerParser>	ReadConfig::getServers()
+std::vector<ServerSetUp>	ReadConfig::getServers()
 {
 	return (this->_servers);
 }

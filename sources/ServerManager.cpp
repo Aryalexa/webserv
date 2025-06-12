@@ -7,17 +7,17 @@ ServerManager::ServerManager()
 
 ServerManager::~ServerManager(){}
 
-void ServerManager::setUpServers(const std::vector<ServerParser>& configs) {
+void ServerManager::setUpMultipleServers(const std::vector<ServerSetUp>& configs) {
 
     _servers = configs;
     
     for (size_t i = 0; i < _servers.size(); ++i) 
     {
-        ServerParser &server = _servers[i];
+        ServerSetUp &server = _servers[i];
         bool reused = false;
 
         for (size_t j = 0; j < i; ++j) {
-            const ServerParser &prev = _servers[j];
+            const ServerSetUp &prev = _servers[j];
             if (prev.getHost() == server.getHost() &&
                 prev.getPort() == server.getPort())
             {
@@ -28,7 +28,7 @@ void ServerManager::setUpServers(const std::vector<ServerParser>& configs) {
         }
 
         if (!reused) {
-            server.setUpServer();
+            server.setUpIndividualServer();
         }
 
         _servers_map[server.getFd()] = server;
@@ -51,7 +51,8 @@ void ServerManager::initializeSockets()
     FD_ZERO(&_recv_fd_pool);
     FD_ZERO(&_write_fd_pool);
 
-    for (size_t i = 0; i < _servers.size(); ++i) {
+    for (size_t i = 0; i < _servers.size(); ++i) 
+    {
         int fd = _servers[i].getFd();
 
         if (listen(fd, 512) < 0) {
@@ -70,5 +71,5 @@ void ServerManager::initializeSockets()
             _biggest_fd = fd;
     }
 
-    Message::logMessage("Initialized fd_sets: biggest_fd = %d", _biggest_fd);
+    Message::logMessage("Initialized FDs: biggest_fd = %d", _biggest_fd);
 }

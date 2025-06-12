@@ -1,5 +1,5 @@
-#ifndef ServerParser_HPP
-#define ServerParser_HPP
+#ifndef SERVERSETUP_HPP
+#define SERVERSETUP_HPP
 
 #include "../headers/WebServ.hpp"
 
@@ -29,7 +29,7 @@
 #define ALIAS_ERR_VALIDATION "Failed Alias Validation"
 #define ERR_PAGE_ERR "Error: Error Page Does Not Exist"
 #define LOCATION_ERR "Error: Path to Location Not Found"
-#define ERROR_SERV_PARSER "Error in our ServerParser: "
+#define ERROR_SERV_PARSER "Error in our ServerSetUp: "
 #define SOCKET_ERR "Error: socket() failed: "
 #define SET_SOCKET_ERR "Error: setsockopt() failed: "
 #define BIND_ERR "Error: bind() failed: "
@@ -52,7 +52,7 @@
 
 class LocationParser;
 
-class ServerParser
+class ServerSetUp
 {
 	private:
 		uint16_t						_port;
@@ -68,10 +68,10 @@ class ServerParser
 		struct sockaddr_in 				_server_address;
 
 	public:
-		ServerParser();
-		~ServerParser(); 
-		ServerParser(const ServerParser &other);
-		ServerParser &operator=(const ServerParser & rhs);
+		ServerSetUp();
+		~ServerSetUp(); 
+		ServerSetUp(const ServerSetUp &other);
+		ServerSetUp &operator=(const ServerSetUp & rhs);
 
 		void                                    		setServerName(std::string server_name);
 		void                                    		setHost(std::string parameter);
@@ -107,7 +107,7 @@ class ServerParser
 		static void                             		checkSemicolon(std::string &token);
 		bool                                    		checkLocations() const;
 	
-		void 											setUpServer(void);
+		void 											setUpIndividualServer(void);
 		
 		class ErrorException : public std::exception
 		{

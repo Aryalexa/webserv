@@ -1,6 +1,6 @@
 #include "../headers/WebServ.hpp"
 
-ServerParser::ServerParser() // Check
+ServerSetUp::ServerSetUp() // Check
 {
 	this->_port = 0;
 	this->_host = 0;
@@ -13,9 +13,9 @@ ServerParser::ServerParser() // Check
 	this->_listen_fd = 0;
 }
 
-ServerParser::~ServerParser() { } // Check
+ServerSetUp::~ServerSetUp() { } // Check
 
-ServerParser::ServerParser(const ServerParser &other) // Check
+ServerSetUp::ServerSetUp(const ServerSetUp &other) // Check
 {
 	if (this != &other)
 	{
@@ -34,7 +34,7 @@ ServerParser::ServerParser(const ServerParser &other) // Check
 	return ;
 }
 
-ServerParser &ServerParser::operator=(const ServerParser & rhs) // Check
+ServerSetUp &ServerSetUp::operator=(const ServerSetUp & rhs) // Check
 {
 	if (this != &rhs)
 	{
@@ -53,7 +53,7 @@ ServerParser &ServerParser::operator=(const ServerParser & rhs) // Check
 	return (*this);
 }
 
-void ServerParser::initErrorPages(void) // Check
+void ServerSetUp::initErrorPages(void) // Check
 {
 	_error_list[301] = "";
 	_error_list[302] = "";
@@ -72,13 +72,13 @@ void ServerParser::initErrorPages(void) // Check
 	_error_list[505] = "";
 }
 
-void ServerParser::setServerName(std::string server_name) // Check
+void ServerSetUp::setServerName(std::string server_name) // Check
 {
 	checkSemicolon(server_name);
 	this->_server_name = server_name;
 }
 
-void ServerParser::setHost(std::string token) // Check
+void ServerSetUp::setHost(std::string token) // Check
 {
 	checkSemicolon(token);
 	if (token == "localhost")
@@ -88,7 +88,7 @@ void ServerParser::setHost(std::string token) // Check
 	this->_host = inet_addr(token.data());
 }
 
-void ServerParser::setRoot(std::string root) // Check 
+void ServerSetUp::setRoot(std::string root) // Check 
 {
 	checkSemicolon(root);
 	if (ConfigFile::getTypePath(root) == 2)
@@ -104,7 +104,7 @@ void ServerParser::setRoot(std::string root) // Check
 	this->_root = full_root;
 }
 
-void ServerParser::setPort(std::string token) // Check 
+void ServerSetUp::setPort(std::string token) // Check 
 {
 	unsigned int port;
 	
@@ -121,7 +121,7 @@ void ServerParser::setPort(std::string token) // Check
 	this->_port = (uint16_t) port;
 }
 
-void ServerParser::setClientMaxBodySize(std::string token) // Check
+void ServerSetUp::setClientMaxBodySize(std::string token) // Check
 {
 	unsigned long body_size;
 	
@@ -138,13 +138,13 @@ void ServerParser::setClientMaxBodySize(std::string token) // Check
 	this->_client_max_body_size = body_size;
 }
 
-void ServerParser::setIndex(std::string index) //Check 
+void ServerSetUp::setIndex(std::string index) //Check 
 {
 	checkSemicolon(index);
 	this->_index = index;
 }
 
-void ServerParser::setAutoindex(std::string autoindex) //Check
+void ServerSetUp::setAutoindex(std::string autoindex) //Check
 {
 	checkSemicolon(autoindex);
 	if (autoindex != "on" && autoindex != "off")
@@ -153,12 +153,12 @@ void ServerParser::setAutoindex(std::string autoindex) //Check
 		this->_autoindex = true;
 }
 
-void	ServerParser::setFd(int fd) //Check
+void	ServerSetUp::setFd(int fd) //Check
 {
 	this->_listen_fd = fd;
 }
 
-void ServerParser::setErrorPages(std::vector<std::string> &token) // Check
+void ServerSetUp::setErrorPages(std::vector<std::string> &token) // Check
 {
 	if (token.empty())
 		return;
@@ -193,7 +193,7 @@ void ServerParser::setErrorPages(std::vector<std::string> &token) // Check
 	}
 }
 
-void ServerParser::setLocation(std::string path, std::vector<std::string> token) // Check
+void ServerSetUp::setLocation(std::string path, std::vector<std::string> token) // Check
 {
 	LocationParser new_location;
 
@@ -343,7 +343,7 @@ void ServerParser::setLocation(std::string path, std::vector<std::string> token)
 	this->_locations.push_back(new_location);
 }
 
-int ServerParser::isValidLocation(LocationParser &location) const // Check
+int ServerSetUp::isValidLocation(LocationParser &location) const // Check
 {
 	if (location.getPath() == CGI_BIN_PATH)
 	{
@@ -418,7 +418,7 @@ int ServerParser::isValidLocation(LocationParser &location) const // Check
 	return (0);
 }
 
-bool ServerParser::isValidHost(std::string host) const // Check
+bool ServerSetUp::isValidHost(std::string host) const // Check
 {
 	struct sockaddr_in sockaddr;
 	if (inet_pton(AF_INET, host.c_str(), &(sockaddr.sin_addr)))
@@ -427,7 +427,7 @@ bool ServerParser::isValidHost(std::string host) const // Check
 		return false;
 }
 
-bool ServerParser::isValidErrorPages() // Check
+bool ServerSetUp::isValidErrorPages() // Check
 {
 	std::map<short, std::string>::const_iterator it;
 	for (it = this->_error_list.begin(); it != this->_error_list.end(); it++)
@@ -440,48 +440,48 @@ bool ServerParser::isValidErrorPages() // Check
 	return (true);
 }
 
-const std::string &ServerParser::getServerName() //Check
+const std::string &ServerSetUp::getServerName() //Check
 {
 	return (this->_server_name);
 }
 
-const std::string &ServerParser::getRoot() //Check
+const std::string &ServerSetUp::getRoot() //Check
 {
 	return (this->_root);
 }
 
-const bool &ServerParser::getAutoindex() //Check
+const bool &ServerSetUp::getAutoindex() //Check
 {
 	return (this->_autoindex);
 }
 
-const in_addr_t &ServerParser::getHost() const { return this->_host; }
+const in_addr_t &ServerSetUp::getHost() const { return this->_host; }
 
-const uint16_t &ServerParser::getPort() const  { return this->_port; }
+const uint16_t &ServerSetUp::getPort() const  { return this->_port; }
 
-const size_t &ServerParser::getClientMaxBodySize() //Check
+const size_t &ServerSetUp::getClientMaxBodySize() //Check
 {
 	return (this->_client_max_body_size);
 }
 
-const std::vector<LocationParser> &ServerParser::getLocations() //Check
+const std::vector<LocationParser> &ServerSetUp::getLocations() //Check
 {
 	return (this->_locations);
 }
 
-const std::map<short, std::string> &ServerParser::getErrorPages() //Check
+const std::map<short, std::string> &ServerSetUp::getErrorPages() //Check
 {
 	return (this->_error_list);
 }
 
-const std::string &ServerParser::getIndex() //Check
+const std::string &ServerSetUp::getIndex() //Check
 {
 	return (this->_index);
 }
 
-int ServerParser::getFd() const { return this->_listen_fd; }
+int ServerSetUp::getFd() const { return this->_listen_fd; }
 
-const std::string &ServerParser::getPathErrorPage(short key) // Check
+const std::string &ServerSetUp::getPathErrorPage(short key) // Check
 {
 	std::map<short, std::string>::iterator it = this->_error_list.find(key);
 	if (it == this->_error_list.end())
@@ -489,7 +489,7 @@ const std::string &ServerParser::getPathErrorPage(short key) // Check
 	return (it->second);
 }
 
-const std::vector<LocationParser>::iterator ServerParser::getLocationKey(std::string key) // Check 
+const std::vector<LocationParser>::iterator ServerSetUp::getLocationKey(std::string key) // Check 
 {
 	std::vector<LocationParser>::iterator it;
 	for (it = this->_locations.begin(); it != this->_locations.end(); it++)
@@ -500,7 +500,7 @@ const std::vector<LocationParser>::iterator ServerParser::getLocationKey(std::st
 	throw ErrorException(LOCATION_ERR);
 }
 
-void ServerParser::checkSemicolon(std::string &token) // Check 
+void ServerSetUp::checkSemicolon(std::string &token) // Check 
 {
 	size_t pos = token.rfind(';');
 	if (pos != token.size() - 1)
@@ -508,7 +508,7 @@ void ServerParser::checkSemicolon(std::string &token) // Check
 	token.erase(pos);
 }
 
-bool ServerParser::checkLocations() const // Check
+bool ServerSetUp::checkLocations() const // Check
 {
 	if (this->_locations.size() < 2)
 		return (false);
@@ -523,7 +523,7 @@ bool ServerParser::checkLocations() const // Check
 	return (false);
 }
 
-void ServerParser::setUpServer()
+void ServerSetUp::setUpIndividualServer()
 {
     _listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (_listen_fd == -1)

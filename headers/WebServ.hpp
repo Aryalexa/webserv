@@ -41,7 +41,7 @@
 # include <arpa/inet.h>
 
 #include "../headers/Message.hpp"
-#include "../headers/ServerParser.hpp"
+#include "../headers/ServerSetUp.hpp"
 #include "../headers/LocationParser.hpp"
 #include "../headers/ConfigFile.hpp"
 #include "../headers/ReadConfig.hpp"

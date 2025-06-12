@@ -1,310 +1,242 @@
-# Webserv_42: Servidor HTTP en C++
+
+# WebServ: Servidor HTTP
 
 ## Introducción al Proyecto
 
-**Webserv_42** Mi parte está divida en dos etapas: 
+- **1. Capa de configuración**  
+  Cuando el servidor se arranca, abre un *socket* y comienza a escuchar en un puerto especificado (ej. `8001`). Es como si una tienda levantara la persiana y anunciara: «estoy lista para atender clientes». Si un navegador se conecta, el servidor acepta la conexión y se establece un canal de comunicación.
 
-- **1. Capa de configuración:** Cuando el servidor WebServ se inicia, abre un socket de red y comienza a escuchar en un puerto especificado (por ejemplo, el puerto 8001 como se muestra en la configuración). Esto es como una tienda abriendo su puerta y esperando a los clientes. El servidor está esencialmente diciendo "Estoy listo para aceptar conexiones en el puerto 8001." Si un cliente intenta conectarse, el servidor acepta la conexión; ahora se ha abierto una línea de comunicación entre el cliente y el servidor. (Bajo el capó, el componente Server Core de WebServ maneja la creación del socket y la aceptación de conexiones como parte de sus funciones de red, pero puedes pensar en ello simplemente como establecer una nueva "conversación" con el cliente).
-
-- **2. Capa de ejecución:** Una vez conectado, el cliente (navegador) envía un mensaje de solicitud HTTP. Este llega como un flujo de bytes de texto. WebServ utiliza su clase de analizador HttpRequest para leer este flujo y entenderlo. La tarea del analizador es tomar los datos en bruto y descomponerlos en las partes significativas de una solicitud HTTP.
-
-## Estructura del Proyecto - Parte Ana Paula
-
-### 1. **Capa de Configuración**
-
-Esta capa transforma el archivo de configuración (`config/default.config`) en estructuras listas para ser utilizadas.
-
-#### **Clases principales:**
-
-- **`ReadConfig`**
-- **`ServerParser`**
-- **`LocationParser`**
-- **`ConfigFile`**
+- **2. Capa de ejecución**  
+  Una vez conectados, los clientes envían peticiones HTTP que llegan como un flujo de bytes. 
 
 ---
+
+## Estructura del Proyecto – Parte **Ana Paula**
+
+### 1. Capa de Configuración
+
+Esta capa convierte el archivo de texto `config/default.config` en estructuras C++ listas para usar en tiempo de ejecución.
+
+#### Clases principales
+
+----------------------------------------------------------------------------------------------
+`ConfigFile`: Utilidades de sistema de archivos (existencia, permisos, lectura completa)
+`LocationParser`: Almacena y valida directivas de cada bloque `location { … }`
+`ServerSetUp`: Representa y valida un bloque `server { … }`; crea el *socket* de escucha
+`ReadConfig`: Orquestador: lee el fichero, elimina comentarios, tokeniza, invoca a los *parsers* anteriores
 
 # ConfigFile
 
 ## Responsabilidad
-Un a clase que valida las operaciones del sistema de archivos. Simplemente te indica:
+Valida y opera sobre rutas y ficheros:
 
-- **`getTypePath(path)`**  
-  ¿Es esto un archivo, un directorio o ninguno de los dos?
+* **`getTypePath(path)`** – ¿Es archivo (`1`), directorio (`2`) o inexistente (`-1`)?
+* **`checkFile(path, mode)`** – Comprueba permisos con `access()`.
+* **`isFileExistAndReadable(base, index)`** – Test exclusivo para páginas índice.
+* **`readFile(path)`** – Devuelve el fichero completo como `std::string`.
 
-- **`checkFile(path, mode)`**  
-  ¿Puedo `access()` este archivo con permisos de lectura/ejecución?
+### Por qué importa
+Todo parser (server o location) necesita saber si un recurso realmente existe antes de aceptarlo.
 
-- **`isFileExistAndReadable(base, index)`**  
-  ¿Existe y es legible bien solo `index` o bien `base + index`?
-
-- **`readFile(path)`**  
-  Lee por completo el archivo en una sola cadena.
-
-## Por qué importa
-Cada otro parser (de Server o de Location) necesita validar que un directorio o página realmente exista antes de continuar. 
+---
 
 # LocationParser
 
 ## Responsabilidad
-Almacena todas las directivas por URL (“location”) definidas en un bloque `location { … }` en la configuración:
+Mantiene las directivas de una ruta (`location`) concreta:
 
-- **`path`** (`/images`, `/cgi-bin`, `/`)  
-- **`root`** – anulación de la ruta raíz para ese path  
-- **`methods`** (`GET`, `POST`, `DELETE`, etc.)  
-- **`autoindex`** (`on`/`off`)  
-- **`index`** – archivo a servir por defecto  
-- **`alias`**, **`return`** (redirección), **`cgi_path`**/`cgi_ext` (listas)  
-- **`client_max_body_size`** – anulación del tamaño máximo del cuerpo de la petición  
+* `path`, `root`, `alias`, `return` (redirección)
+* `methods` (`GET`, `POST`, `DELETE`, …) – vector de hasta 3 flags
+* `autoindex` (`on`/`off`), `index`, `cgi_path`, `cgi_ext`
+* `client_max_body_size` – override por ubicación
 
-Valida cada directiva al establecerla (por ejemplo, sólo `on`/`off` para `autoindex`; extensiones correctas para CGI) y expone getters sencillos para que en tiempo de ejecución sepa exactamente cómo manejar peticiones a esa subruta.
+Valida cada directiva (p. ej. solo `on`/`off` para *autoindex*) y ofrece *getters* ligeros al runtime.
 
-## Por qué importa
-Separa la lógica específica de cada URL de los ajustes globales del servidor. Cuando el servidor recibe una petición a `/foo/bar`, simplemente recorre su lista de objetos `LocationParser` para aplicar las reglas adecuadas. No hace falta volver a reparsear el archivo de configuración en tiempo de ejecución.
+### Por qué importa
+Separa reglas por URL de la configuración global.  
+Cuando el servidor recibe `/imagenes/foto.jpg`, sólo busca el `LocationParser` adecuado; **no** re‑parsea el archivo.
 
-# ServerParser
+---
+
+# ServerSetUp
 
 ## Responsabilidad
-Representa un bloque `<server> { … }` completo y centraliza toda la configuración y puesta en marcha de un servidor virtual:
+Representa un bloque completo `server { … }` y encapsula la creación del *socket* de escucha.
 
-- **Configuraciones globales:** `host`, `port`, `server_name`, `root`, `index`, `client_max_body_size`, `autoindex`  
-- **Mapa de páginas de error:** asignación de códigos a rutas de error (por ejemplo, `404` → `/errors/404.html`)  
-- **Ubicaciones:** un vector de objetos `LocationParser` para cada bloque `location { … }`  
-- Al finalizar la validación de directivas, llama a **`setUpServer()`** para configurar el socket:
-  - **`socket()`**  
-  - **`setsockopt(SO_REUSEADDR)`**  
-  - **`fill sockaddr_in`**  
-  - **`bind()`**  
-- Almacena internamente el descriptor de archivo de escucha resultante.
+### Propiedades clave
 
-## Por qué importa
-Todo lo necesario para manejar un servidor virtual. Incluyendo anulación de páginas de error y reglas de ruta se encapsula en esta clase. Realizar el bind del socket durante el parseo permite detectar conflictos de puertos o direcciones inválidas antes de iniciar el bucle de eventos.
+* `host`, `port`, `server_name`
+* `root`, `index`, `autoindex`
+* `client_max_body_size`
+* `std::map<int,std::string> error_pages`
+* `std::vector<LocationParser> locations`
+* `int _listen_fd` – descriptor de escucha
+
+### Método principal: `setUpIndividualServer()`
+
+1. `socket(AF_INET, SOCK_STREAM, 0)`
+2. `setsockopt(SO_REUSEADDR)` – hot reload.
+3. Rellena `sockaddr_in` (`sin_family`, `sin_addr`, `sin_port`).
+4. `bind()`  
+   *Error → lanza excepción legible (puerto ocupado, IP inválida).*
+5. Devuelve y almacena el *fd*.
+
+### Por qué importa
+Centraliza **toda** la configuración de un servidor virtual; el resto del programa sólo ve «un objeto con getters y un fd listo».
+
+---
 
 # ReadConfig
 
 ## Responsabilidad
-El cargador de configuración de más alto nivel. Dada una ruta en el sistema de archivos, se encarga de:
+Parser maestro del archivo de configuración.
 
-- **`readFile()`** (vía `ConfigFile`)  
-- Eliminar comentarios (`#…`) y recortar espacios en blanco  
-- Dividir el texto en N subcadenas distintas de `server { … }`  
-- Por cada subcadena:
-  - Crear una instancia nueva de **`ServerParser`**  
-  - Tokenizarla y enviar cada directiva (`listen`, `host`, `root`, `error_page`, `location`, etc.) al parser  
-  - Dejar que **`ServerParser`** y **`LocationParser`** validen cada valor  
-- Si hay más de un servidor, comprobar combinaciones duplicadas de `(host, port, server_name)`  
-- Finalmente, **`getServers()`** devuelve un `std::vector<ServerParser>` — cada uno ya enlazado a su socket de escucha o lanzando una excepción clara en caso de error.
+1. Usa `ConfigFile` para leer el texto completo.
+2. Elimina comentarios (`# …`) y espacios redundantes.
+3. Secciona el texto en N bloques `server { … }`.
+4. Para cada bloque:
+   * Instancia `ServerSetUp` y manda tokens/directivas.
+   * Cada `location` se delega a su propio `LocationParser`.
+5. Verifica duplicados `(host, port, server_name)`.
+6. Expone `createServerGroup()` → `std::vector<ServerSetUp>` **validado**.
 
-## Por qué importa
-Revosa la sintaxis de alto nivel de las validaciones por servidor y por ubicación. Una vez que llamas a **`createServerGroup()`**, sabes que obtendrás una lista limpia y validada de servidores, o bien se detendrá con un error informativo antes de arrancar el loop de eventos.
+### Por qué importa
+Aísla la sintaxis de las estructuras runtime.  
+Después de `createServerGroup()` el código de red no vuelve a tocar cadenas crudas.
+
+---
 
 # Message
 
 ## Responsabilidad
-Un envoltorio ligero para registro en estilo `printf`:
+Pequeña utilidad de logging con colores ANSI:
 
-- **`logMessage()`**  
-  Para mensajes de información normales.
+* `logMessage()` – info normal.
+* `logError()`   – errores graves (rojo).
 
-- **`logError()`**  
-  Para errores graves (se muestran en rojo).
+### Por qué importa
+Unifica la salida en consola; hace el *debug* menos doloroso.
 
-## Por qué importa
-Garantiza una salida de consola coherente en `main()`, `ServerManager` y todos los parsers, facilitando el seguimiento de la ejecución y la depuración de errores.
+---
 
-### 1. **Capa de Ejecución**
+### 2. Capa de Ejecución
 
-#### **Clases principales:**
-
-- **`ServerManager`**
+#### Clase principal – `ServerManager`
 
 ---
 
 # ServerManager
 
-## Responsabilidad
-Convierte tu `std::vector<ServerParser>` en un conjunto de descriptores de archivo (FD-set) listo para usar con `select()`:
+## Visión general
+Toma el vector de `ServerSetUp` generado por **ReadConfig** y lo convierte en:
 
-- **`setUpServers(...)`**  
-  - Copia las configuraciones recibidas.  
-  - Para cada `ServerParser`:
-    - Si otro servidor ya ha enlazado el mismo `host`/`port`, reutiliza su FD.  
-    - De lo contrario, llama a **`ServerParser::setUpServer()`**.  
-    - Registra la relación FD → `ServerParser` en `_servers_map`.  
-    - Registra en log: `"Server X bound to IP:port, fd=..."`.  
+1. Un conjunto de *sockets* realmente **`listen()`‑ando**.  
+2. Dos `fd_set` inicializados para `select()`.  
+3. El entero `_biggest_fd` que `select()` exige como primer parámetro.
 
-- **`initializeSockets()`**  
-  - Llama a `listen()` y `fcntl(O_NONBLOCK)` en cada FD único.  
-  - Ejecuta `FD_SET(fd, &_recv_fd_pool)` para cada descriptor.  
-  - Mantiene actualizado `_biggest_fd` para la llamada a `select()`.
+## Atributos internos
 
-## Por qué importa
-Actúa como puente entre la configuración y el tiempo de ejecución. Tras ejecutar estos métodos, tendrás sockets de escucha para cada `(host,port)` configurado. El siguiente paso es el bucle `select()` para `accept()`, lectura, escritura y manejo de timeouts.
+| Atributo         | Tipo                         | Propósito                                                    |
+| ---------------- | ---------------------------- | ------------------------------------------------------------ |
+| `_servers`       | `std::vector<ServerSetUp>`   | Copia local de la configuración validada.                    |
+| `_servers_map`   | `std::map<int, ServerSetUp>` | Lookup rápido **fd → servidor** (para aceptar y *routing*).  |
+| `_recv_fd_pool`  | `fd_set`                     | Descriptores monitoreados para lectura (incl. listen fds).   |
+| `_write_fd_pool` | `fd_set`                     | Descriptores para escritura (respuestas pendientes).         |
+| `_biggest_fd`    | `int`                        | Mayor fd => arg `maxfd+1` de `select()`.                     |
+| `_timeout`       | `struct timeval`             | Timeout global (p. ej. 5 segundos) para `select()`.          |
+
+## Fases de vida
+
+| Fase                     | Método / Acción                                               | Resultado clave                                                   |
+| ------------------------ | ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Construcción**        | `ServerManager(cfgs)`                                         | Copia el vector; inicializa fd\_sets a cero.                      |
+| **Setup**               | `setUpMultipleServers()`                                      | Cada server crea/reutiliza socket; se llena `_servers_map`.       |
+| **Init**                | `initializeSockets()`                                         | `listen()`, `fcntl(O_NONBLOCK)`, `FD_SET()` y cálculo `_biggest_fd`. |
+| **Loop principal**      | `runServers()` *(futuro)*                                     | Bucle `select()` infinito hasta señal SIGINT.                     |
+| **Cierre ordenado**     | `shutdownServers()` *(futuro)*                                | `close()` de todos los fds y limpieza de memoria.                 |
+
+## Detalle de métodos clave
+
+### 1. `setUpMultipleServers()`
+
+```cpp
+void ServerManager::setUpMultipleServers(const std::vector<ServerSetUp>& cfgs) {
+    _servers = cfgs;
+    for (size_t i = 0; i < _servers.size(); ++i) {
+        ServerSetUp& srv = _servers[i];
+        // — 1) ¿Existe ya un fd con mismo (host,port)?
+        int fd_reuse = findExistingSocket(srv.getHost(), srv.getPort());
+        if (fd_reuse != -1) {
+            srv.overwriteFd(fd_reuse);           // <<— reuse
+        } else {
+            srv.setUpIndividualServer();         // <<— new socket
+        }
+        _servers_map[srv.getFd()] = srv;         // (fd -> srv) map
+        Message::logMessage("[Setup] %s:%d -> fd=%d (%s)",
+                            srv.getHost().c_str(),
+                            srv.getPort(),
+                            srv.getFd(),
+                            fd_reuse != -1 ? "reused" : "new");
+    }
+}
+```
+
+*La deduplicación ahorra *file descriptors* y permite *virtual hosts* en el mismo puerto.*
+
+### 2. `initializeSockets()`
+
+```cpp
+void ServerManager::initializeSockets() {
+    FD_ZERO(&_recv_fd_pool);
+    FD_ZERO(&_write_fd_pool);
+    for (size_t i = 0; i < _servers.size(); ++i) {
+        int fd = _servers[i].getFd();
+        listen(fd, 512);                      // backlog de 512
+        fcntl(fd, F_SETFL, O_NONBLOCK);       // no-blocking
+        FD_SET(fd, &_recv_fd_pool);           // track for accept()
+        if (fd > _biggest_fd) _biggest_fd = fd;
+    }
+    _timeout.tv_sec  = 5;
+    _timeout.tv_usec = 0;
+    Message::logMessage("[Init] biggest_fd=%d, timeout=5s", _biggest_fd);
+}
+```
+
+
+## Errores comunes y cómo se manejan
+
+| Caso                                            | Componente   | Acción                                   | Código HTTP resultante |
+| ----------------------------------------------- | ------------ | ---------------------------------------- | ---------------------- |
+| Puerto ocupado al *bind()*                      | ServerSetUp  | Lanza excepción → captura en `main()`    | – (cierra programa)    |
+| `select()` devuelve `EBADF` o `EINTR`           | ServerManager| Re‑construye `_recv_fd_pool` / re‑intenta| 500 si se detecta roto |
+| Ruta estática no encontrada                     | HttpResponse | Sirve `error_pages[404]`  o mensaje gen. | 404 Not Found          |
+| Límite de cuerpo superado (`client_max_body_size`)| HttpRequest  | Detiene lectura, marca error            | 413 Payload Too Large  |
+
+---
 
 # main()
 
 ## Responsabilidad
-Ensambla todos los componentes y arranca el servidor:
+Punto de entrada que orquesta todo:
 
-- Selecciona la ruta del archivo de configuración (por defecto o `argv[1]`).  
-- Llama a `ReadConfig::createServerGroup()`.  
-- Obtiene el `std::vector<ServerParser>`.  
-- Instancia `ServerManager`, ejecuta `setUpServers(...)` y `initializeSockets()`.  
-- (Posteriormente) delega en `ServerManager::runServers()`.  
-- Captura y reporta cualquier excepción surgida durante el parseo o el binding.
-
-## Por qué importa
-Actúa como punto de entrada y coordina la lectura de la configuración, la inicialización de sockets y el bucle de eventos. Además, garantiza que los errores en la fase de arranque se informen claramente antes de entrar al bucle principal.
-
-## Interacciones entre Componentes
-
-### `main()`
-- Invoca **ReadConfig** para procesar el archivo de configuración.  
-- Crea e inicializa **ServerManager** para preparar los sockets.  
-- Utiliza **Message** para loguear eventos.
-
-### `ReadConfig`
-- Llama a **ConfigFile** para leer y validar el fichero.  
-- Genera objetos **ServerParser** (uno por cada bloque `server { … }`).
-
-### `ServerParser`
-- Usa **LocationParser** para cada bloque `location { … }` en su configuración.  
-- Vuelve a usar **ConfigFile** para validar rutas y permisos.  
-- Loguea errores y mensajes con **Message**.
-
-### `LocationParser`
-- Guarda directivas específicas de ruta (`path`, `methods`, `root`, etc.).  
-- Se comunica sólo con **Message** para logging de errores.
-
-### `ConfigFile`
-- Proporciona utilidades de I/O:
-  - `readFile()`  
-  - `getTypePath()`, `checkFile()`, `isFileExistAndReadable()`  
-- Emplea **Message** para reportar fallos.
-
-### `ServerManager`
-- Recibe el vector de **ServerParser**, y para cada servidor:
-  - Reusa o crea sockets con `socket()`/`bind()` (vía `ServerParser::setUpServer()`).  
-  - Almacena la relación FD → `ServerParser` en `_servers_map`.  
-  - Prepara los `fd_set` con `initializeSockets()`.  
-- Usa **Message** para indicar progreso y errores.
-
-# Siguientes Pasos
-
-## 1. Diseñar el Loop de Eventos (`runServers`)
-
-**Objetivo:**  
-Mantener vivo el servidor, aceptar conexiones y despachar I/O sin bloquear.
-
-**Tareas:**
-
-- Copiar los `fd_set` actuales en sets de trabajo en cada iteración.
-- Llamar a `select(_biggest_fd + 1, &recv_set, &write_set, NULL, &timeout)`.
-- Para cada descriptor activo:
-  - **Si es un socket de escucha:** llamar a `acceptNewConnection()`
-  - **Si es un cliente con datos de lectura:** llamar a `readRequest()`
-  - **Si es un cliente listo para escribir:** llamar a `sendResponse()`
+```cpp
+int main(int ac, char** av) {
+    std::string config = (ac == 2) ? av[1] : "config/default.config";
+    try {
+        std::vector<ServerSetUp> servers = ReadConfig::createServerGroup(config);
+        ServerManager sm(servers);
+        sm.setUpMultipleServers();
+        sm.initializeSockets();
+        sm.runServers();          // bucle infinito
+    } catch (const std::exception& e) {
+        Message::logError("Fatal: %s", e.what());
+    }
+    return 0;
+}
+```
 
 ---
 
-## 2. Implementar `acceptNewConnection()`
-
-**Qué hace:**
-
-- Llama a `accept()` sobre el `listen_fd` para obtener un `client_fd`.
-- Configura ese `client_fd` en modo no bloqueante.
-- Lo añade a `_recv_fd_pool`.
-- Crea un objeto intermedio (por ejemplo, `Client`) donde se guarda el estado de la petición y la respuesta.
-
----
-
-## 3. Escribir el Parser HTTP (`HttpRequest`)
-
-**Responsabilidad:**  
-Recibir bytes crudos y fragmentarlos en:
-
-1. Línea inicial (ej. `GET /foo HTTP/1.1`)
-2. Headers (hasta encontrar la doble línea en blanco)
-3. Body (si hay `Content-Length` o `Transfer-Encoding`)
-
-**Uso:**
-
-En `readRequest()`, se alimenta al parser con cada fragmento recibido vía `read()`.  
-Cuando el parser está completo o detecta un error, se marca el socket como “listo para respuesta”.
-
-
-```markdown
-
-┌───────────┐
-│   main    │
-│ (WebServ) │
-└─────┬─────┘
-      │
-      ▼
-┌────────────┐               Invoca
-│ ReadConfig │─────────────► createServerGroup(config)
-└─────┬───────┘
-      │
-      │ 1) usa ConfigFile para leer y validar el archivo  
-      │ 2) divide el texto en bloques “server {…}”  
-      │ 3) para cada bloque crea un ServerParser  
-      ▼
-┌───────────────────┐
-│  ServerParser     │◄───────────┐  
-│  (config por srv) │            │  
-└─────┬─────────────┘            │  
-      │                          │  
-      │ – valida host/puerto     │  
-      │ – guarda server_name,    │  
-      │   root, index, error_pages│  
-      │ – delega cada bloque      │  
-      │   `location {…}` a        │  
-      ▼                          │  
-┌───────────────────┐            │  
-│ LocationParser    │            │  
-│ (config ruta)     │            │  
-└───────────────────┘            │  
-                                 │  
-      ▲                          │  
-      │  utiliza                 │  
-      │  ConfigFile para rutas   │  
-      ▼                          │  
-┌───────────────────┐            │  
-│  ConfigFile       │            │  
-│ (I/O y FS-checks) │            │  
-└───────────────────┘            │  
-                                 │  
-      ▲                          │  
-      │  All log/error messages  │  
-      ▼                          │  
-┌───────────────────┐            │  
-│  Message          │────────────┘  
-│ (logMessage /     │  
-│  logError)        │  
-└───────────────────┘  
-                                  
-      │  
-      │ al terminar, devuelve  
-      ▼  
-┌───────────────────┐  
-│ main recibe      │  
-│ vector<ServerParser>  
-└─────┬─────────────┘  
-      │  
-      ▼  
-┌───────────────────┐  
-│ ServerManager     │  
-└─────┬─────────────┘  
-      │  
-      │ 1) setUpServers(...)  
-      │    – recorre cada ServerParser  
-      │    – reutiliza o llama a setUpServer()  
-      │      (socket() + bind())  
-      │    – guarda en map<fd,ServerParser>  
-      │ 2) initializeSockets()  
-      │    – listen(), non-blocking  
-      │    – construye fd_sets para select()  
-      ▼  
-┌───────────────────┐  
-│  (Next)           │  
-│  accept/read/write│  
-└───────────────────┘  
+> Con esta arquitectura, las clases de *config* convierten texto en objetos C++,  
+> **ServerManager** traduce esos objetos en *sockets* listos,  
+> y el futuro bucle de eventos descansa sobre esa base para ofrecer un servidor HTTP estable y extensible.

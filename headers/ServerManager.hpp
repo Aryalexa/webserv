@@ -5,19 +5,19 @@
 
 # define CONNECTION_TIMEOUT 5
 
-class ServerParser;
+class ServerSetUp;
 
 class ServerManager {
     public:
         ServerManager();
         ~ServerManager();
 
-        void setUpServers(const std::vector<ServerParser>& servers);
+        void setUpMultipleServers(const std::vector<ServerSetUp>& servers);
         void initializeSockets();
 
     private:
-        std::vector<ServerParser>           _servers;
-        std::map<int,ServerParser>          _servers_map;
+        std::vector<ServerSetUp>           _servers;
+        std::map<int,ServerSetUp>          _servers_map;
         fd_set                              _recv_fd_pool;
         fd_set                              _write_fd_pool;
         int                                 _biggest_fd;

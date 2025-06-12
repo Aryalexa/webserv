@@ -61,7 +61,7 @@ void LocationParser::setPath(std::string token)
 void LocationParser::setRootLocation(std::string token)
 {
 	if (ConfigFile::getTypePath(token) != 2)
-		throw ServerParser::ErrorException(ERR_ROOR_LOCATION);
+		throw ServerSetUp::ErrorException(ERR_ROOR_LOCATION);
 	this->_root = token;
 }
 
@@ -86,7 +86,7 @@ void LocationParser::setMethods(std::vector<std::string> methods)
 		else if (methods[i] == "HEAD")
 			this->_methods[4] = 1;
 		else
-			throw ServerParser::ErrorException(ERR_SUPPORT_METHOD + methods[i]);
+			throw ServerSetUp::ErrorException(ERR_SUPPORT_METHOD + methods[i]);
 	}
 }
 
@@ -95,7 +95,7 @@ void LocationParser::setAutoindex(std::string token)
 	if (token == "on" || token == "off")
 		this->_autoindex = (token == "on");
 	else
-		throw ServerParser::ErrorException(AUTOINDEX_ERR);
+		throw ServerSetUp::ErrorException(AUTOINDEX_ERR);
 }
 
 void LocationParser::setIndexLocation(std::string token)
@@ -130,10 +130,10 @@ void LocationParser::setMaxBodySize(std::string token)
 	for (size_t i = 0; i < token.length(); i++)
 	{
 		if (token[i] < '0' || token[i] > '9')
-			throw ServerParser::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
+			throw ServerSetUp::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
 	}
 	if (!ft_stoi(token))
-		throw ServerParser::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
+		throw ServerSetUp::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
 	body_size = ft_stoi(token);
 	this->_client_max_body_size = body_size;
 }

@@ -18,14 +18,11 @@ int main(int argc, char **argv)
 
             config_reader.createServerGroup(config_path);
 
-			// Esta parte es de Debug, no le hagan caso
-            // config_reader.print_debug_parser();
-
-            std::vector<ServerParser> servers = config_reader.getServers();
+            std::vector<ServerSetUp> servers = config_reader.getServers();
 
             ServerManager manager;
-            manager.setUpServers(servers);
-
+            manager.setUpMultipleServers(servers);
+            manager.initializeSockets();
         }
         catch (const std::exception &e)
         {
