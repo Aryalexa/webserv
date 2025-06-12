@@ -227,7 +227,7 @@ int main(int ac, char** av) {
         ServerManager sm(servers);
         sm.setUpMultipleServers();
         sm.initializeSockets();
-        sm.runServers();          // bucle infinito
+  
     } catch (const std::exception& e) {
         Message::logError("Fatal: %s", e.what());
     }
