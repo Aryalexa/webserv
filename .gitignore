@@ -4,6 +4,7 @@
 *.out
 *.exe
 *.a
+config/default.config
 
 
 miniclient
