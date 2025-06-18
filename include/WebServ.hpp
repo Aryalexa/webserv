@@ -40,18 +40,22 @@
 # include <sys/select.h>
 # include <arpa/inet.h>
 
-#include "../headers/Message.hpp"
-#include "../headers/ServerSetUp.hpp"
-#include "../headers/LocationParser.hpp"
-#include "../headers/ConfigFile.hpp"
-#include "../headers/ReadConfig.hpp"
-#include "../headers/ServerManager.hpp"
+#include "../include/Message.hpp"
+#include "../include/ServerSetUp.hpp"
+#include "../include/LocationParser.hpp"
+#include "../include/ConfigFile.hpp"
+#include "../include/ReadConfig.hpp"
+#include "../include/ServerManager.hpp"
+#include "../include/utils.hpp"
 
 # define SUCCESS    0
 # define ERROR      1
 
 # define MAX_CONTENT_LENGTH 30000000
 # define USAGE "Usage: ./WebServ [config_file]"
+# define BUFFER_SIZE  1024
+# define BACKLOG_SIZE 10
+
 
 std::string statusCodeString(short);
 int 		ft_stoi(std::string str);

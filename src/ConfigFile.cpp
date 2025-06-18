@@ -1,4 +1,4 @@
-#include "../headers/WebServ.hpp"
+#include "../include/WebServ.hpp"
 
 ConfigFile::ConfigFile() : _size(0) { }
 

@@ -1,4 +1,4 @@
-#include "../headers/WebServ.hpp"
+#include "../include/WebServ.hpp"
 
 ServerSetUp::ServerSetUp() // Check
 {
@@ -533,12 +533,16 @@ void ServerSetUp::setUpIndividualServer()
     if (setsockopt(_listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
         throw ErrorException(std::string(SET_SOCKET_ERR) + strerror(errno));
 
+	set_nonblocking(_listen_fd);
+
     memset(&_server_address, 0, sizeof(_server_address));
     _server_address.sin_family = AF_INET;
     _server_address.sin_addr.s_addr = _host;
+	// _server_address.sin_addr.s_addr = htonl(INADDR_ANY); // Accept connections from any IP
     _server_address.sin_port = htons(_port); 
 
     if (bind(_listen_fd, reinterpret_cast<sockaddr*>(&_server_address),
              sizeof(_server_address)) == -1)
         throw ErrorException(std::string(BIND_ERR) + strerror(errno));
 }
+

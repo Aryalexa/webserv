@@ -1,4 +1,4 @@
-#include "../headers/WebServ.hpp"
+#include "../include/WebServ.hpp"
 
 int main(int argc, char **argv) 
 {
@@ -21,8 +21,8 @@ int main(int argc, char **argv)
             std::vector<ServerSetUp> servers = config_reader.getServers();
 
             ServerManager manager;
-            manager.setUpMultipleServers(servers);
-            manager.initializeSockets();
+            manager.setup(servers);
+            manager.init();
         }
         catch (const std::exception &e)
         {

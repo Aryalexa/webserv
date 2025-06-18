@@ -1,7 +1,7 @@
 #ifndef CONFIGFILE_HPP
 #define CONFIGFILE_HPP
 
-#include "../headers/WebServ.hpp"
+#include "../include/WebServ.hpp"
 
 class ConfigFile {
 	private:

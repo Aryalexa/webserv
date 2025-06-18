@@ -1,7 +1,7 @@
 #ifndef LOCATION_HPP
 #define LOCATION_HPP
 
-#include "../headers/WebServ.hpp"
+#include "../include/WebServ.hpp"
 
 #define ERR_ROOR_LOCATION "Error: Root of LocationParser"
 #define ERR_SUPPORT_METHOD "Error: Allow Method not Supported "

@@ -1,7 +1,7 @@
 #ifndef READCONFIG_HPP
 #define READCONFIG_HPP
 
-#include "../headers/WebServ.hpp"
+#include "../include/WebServ.hpp"
 
 #define READ_CONFIG_ERR "Error: ReadConfig Error"
 #define INVALID_FILE_ERR "Error: File is Invalid"

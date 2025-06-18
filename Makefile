@@ -1,28 +1,74 @@
-$(info ***  CXX = $(CXX)  ***)
+CXX       = c++
+CXXFLAGS  = -Wall -Wextra -std=c++98 -I$(INCLUDE)
 
-NAME := webserv
+NAME      = webserver
 
-SRCS := $(wildcard sources/*.cpp)
+# Colors
+GREEN   = \033[0;32m
+RED     = \033[0;31m
+NC      = \033[0m
 
-OBJS := $(SRCS:.cpp=.o)
+# Include folder
+INCLUDE   = include
 
-CXX      := c++
-CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -Iinc
+# === src files =======================================
+SRC       = src/ConfigFile.cpp \
+			src/LocationParser.cpp \
+			src/Message.cpp \
+			src/ReadConfig.cpp \
+			src/ServerManager.cpp \
+			src/ServerSetUp.cpp \
+			src/main.cpp \
+			src/statusCode.cpp \
+			src/utils.cpp \
 
+
+# Build folder
+BUILD_DIR = build
+
+# Object files
+OBJ       = $(SRC:src/%.cpp=$(BUILD_DIR)/%.o)
+
+# === test files =======================================
+TEST_SRC  = tests/test_configparser.cpp \
+            tests/test_httpparser.cpp
+
+TEST_BIN  = tests/test_configparser \
+            tests/test_httpparser
+
+# === Rules =======================================
+
+# Default target
 all: $(NAME)
 
-$(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+# Link server binary
+$(NAME): $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ)
 
-src/%.o: src/%.cpp
+# Compile object files into the build folder
+$(BUILD_DIR)/%.o: src/%.cpp
+	@mkdir -p $(dir $@) # Create the directory structure if it doesn't exist
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-clean:
-	rm -f $(OBJS)
+# Build test binaries
+test: $(TEST_BIN)
+	@for bin in $(TEST_BIN); do echo "Running $$bin"; ./$$bin; done
 
+tests/test_configparser: tests/test_configparser.cpp $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+tests/test_httpparser: tests/test_httpparser.cpp $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+# Clean object files and test binaries
+clean:
+	rm -rf $(BUILD_DIR) $(TEST_BIN)
+
+# Clean everything including main binary
 fclean: clean
 	rm -f $(NAME)
 
+# Rebuild everything
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re test
