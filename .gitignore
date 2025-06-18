@@ -4,3 +4,8 @@
 *.out
 *.exe
 *.a
+
+
+miniclient
+webserver
+.github/

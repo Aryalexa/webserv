@@ -1,5 +1,5 @@
-CXX       = g++
-CXXFLAGS  = -Wall -Wextra -std=c++98 -Iinclude
+CXX       = c++
+CXXFLAGS  = -Wall -Wextra -std=c++98 -I$(INCLUDE)
 
 NAME      = webserver
 
@@ -8,16 +8,29 @@ GREEN   = \033[0;32m
 RED     = \033[0;31m
 NC      = \033[0m
 
+# Include folder
+INCLUDE   = include
+
 # === src files =======================================
-SRC       = src/main.cpp \
-            src/Server.cpp \
-            src/ConfigParser.cpp \
-            src/HttpRequest.cpp \
-            src/HttpResponse.cpp
+SRC       = src/ConfigFile.cpp \
+			src/LocationParser.cpp \
+			src/Message.cpp \
+			src/ReadConfig.cpp \
+			src/ServerManager.cpp \
+			src/ServerSetUp.cpp \
+			src/main.cpp \
+			src/statusCode.cpp \
+			src/utils.cpp \
 
-OBJ       = $(SRC:.cpp=.o)
 
-# === test files  =======================================
+# Build folder
+BUILD_DIR = build
+
+# Object files
+OBJ       = $(SRC:src/%.cpp=$(BUILD_DIR)/%.o)
+
+# === test files =======================================
+
 TEST_SRC  = tests/test_configparser.cpp \
             tests/test_httpparser.cpp
 
@@ -33,8 +46,9 @@ all: $(NAME)
 $(NAME): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ)
 
-# Compile object files
-src/%.o: src/%.cpp
+# Compile object files into the build folder
+$(BUILD_DIR)/%.o: src/%.cpp
+	@mkdir -p $(dir $@) # Create the directory structure if it doesn't exist
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Build test binaries
@@ -49,7 +63,7 @@ tests/test_httpparser: tests/test_httpparser.cpp $(OBJ)
 
 # Clean object files and test binaries
 clean:
-	rm -f $(OBJ) $(TEST_BIN)
+	rm -rf $(BUILD_DIR) $(TEST_BIN)
 
 # Clean everything including main binary
 fclean: clean
