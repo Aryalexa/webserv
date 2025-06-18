@@ -30,6 +30,7 @@ BUILD_DIR = build
 OBJ       = $(SRC:src/%.cpp=$(BUILD_DIR)/%.o)
 
 # === test files =======================================
+
 TEST_SRC  = tests/test_configparser.cpp \
             tests/test_httpparser.cpp
 

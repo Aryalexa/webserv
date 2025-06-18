@@ -5,8 +5,7 @@
 *.exe
 *.a
 
+
 miniclient
 webserver
-
-
 .github/
