@@ -1,12 +1,11 @@
 
 .vscode
+.github/
 *.o
 *.out
 *.exe
 *.a
 config/default.config
 
-
 miniclient
-webserver
-.github/
+webserv

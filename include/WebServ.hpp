@@ -40,7 +40,7 @@
 # include <sys/select.h>
 # include <arpa/inet.h>
 
-#include "Message.hpp"
+#include "logging.hpp"
 #include "ServerSetUp.hpp"
 #include "LocationParser.hpp"
 #include "ConfigFile.hpp"
@@ -53,10 +53,11 @@
 # define ERROR      1
 
 # define MAX_CONTENT_LENGTH 30000000
-# define USAGE "Usage: ./WebServ [config_file]"
+# define USAGE "Usage: ./webserv [config_file]"
 # define BUFFER_SIZE  1024
 # define BACKLOG_SIZE 10
 
+# define DEFAULT_CONFIG_FILE "config/default.config"
 
 std::string statusCodeString(short);
 int 		ft_stoi(std::string str);

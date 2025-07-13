@@ -1,7 +1,7 @@
 CXX       = c++
 CXXFLAGS  = -Wall -Wextra -std=c++98 -I$(INCLUDE)
 
-NAME      = webserver
+NAME      = webserv
 
 # Colors
 GREEN   = \033[0;32m
@@ -14,7 +14,7 @@ INCLUDE   = include
 # === src files =======================================
 SRC       = src/ConfigFile.cpp \
 			src/LocationParser.cpp \
-			src/Message.cpp \
+			src/logging.cpp \
 			src/ReadConfig.cpp \
 			src/ServerManager.cpp \
 			src/ServerSetUp.cpp \
