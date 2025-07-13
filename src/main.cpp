@@ -2,38 +2,33 @@
 
 int main(int argc, char **argv) 
 {
-    if (argc == 1 || argc == 2) 
-    {
-        try
-        {
-            std::string config_path;
+    std::string config_path;
+    ReadConfig config_reader;
+    std::vector<ServerSetUp> serverGroup;
+    ServerManager serverManager;
 
-            if (argc == 1) {
-                config_path = "config/default.config";
-            } else {
-                config_path = argv[1];
-            }
-
-            ReadConfig config_reader;
-
-            config_reader.createServerGroup(config_path);
-
-            std::vector<ServerSetUp> servers = config_reader.getServers();
-
-            ServerManager manager;
-            manager.setup(servers);
-            manager.init();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << e.what() << std::endl;
-            return (ERROR);
-        }
-    }
-    else 
-    {
+    if (argc > 2) {
         std::cerr << USAGE << std::endl;
         return (ERROR);
     }
+    
+    try {
+        if (argc == 1)
+            config_path = DEFAULT_CONFIG_FILE;
+        else
+            config_path = argv[1];
+        
+        config_reader.createServerGroup(config_path);
+
+        serverGroup = config_reader.getServers();
+
+        serverManager.setup(serverGroup);
+        serverManager.init();
+
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+        return (ERROR);
+    }
+    
     return (SUCCESS);
 }

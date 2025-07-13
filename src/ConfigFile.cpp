@@ -6,6 +6,9 @@ ConfigFile::ConfigFile(std::string const path) : _path(path), _size(0) { }
 
 ConfigFile::~ConfigFile() { }
 
+/**
+ * ¿Es archivo (`1`), directorio (`2`) o inexistente (`-1`)?
+ */
 int ConfigFile::getTypePath(std::string const path)
 {
 	struct stat	buffer;
@@ -25,11 +28,22 @@ int ConfigFile::getTypePath(std::string const path)
 		return (-1);
 }
 
+/**
+ * Comprueba permisos con `access()`
+ */
 int	ConfigFile::checkFile(std::string const path, int mode)
 {
 	return (access(path.c_str(), mode));
 }
 
+/**
+ * Test exclusivo para páginas índice.
+ * Comprueba si el archivo existe y es legible.
+ * Si `index` es un archivo, comprueba si existe y es legible.
+ * Si `index` es un directorio, comprueba si existe y es legible.
+ * Si `index` es un archivo dentro de `path`, comprueba si existe y es legible.
+ * Devuelve `0` si es legible, `-1` si no
+ */
 int ConfigFile::isFileExistAndReadable(std::string const path, std::string const index)
 {
 	if (getTypePath(index) == 1 && checkFile(index, 4) == 0)
@@ -39,6 +53,10 @@ int ConfigFile::isFileExistAndReadable(std::string const path, std::string const
 	return (-1);
 }
 
+/**
+ * Lee el archivo de configuración.
+ * Abre el archivo, lo lee y devuelve su contenido como `std::string`.
+ */
 std::string	ConfigFile::readFile(std::string path)
 {
 	if (path.empty() || path.length() == 0)

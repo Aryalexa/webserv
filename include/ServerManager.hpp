@@ -16,30 +16,28 @@ class ServerManager {
         // int                                 _biggest_fd;
 
 
-        static bool running;
+        static bool _running;
         // sets
-        fd_set master_read_fds;
-        fd_set master_write_fds;
-        fd_set temp_read_fds;
-        fd_set temp_write_fds;
-        int max_fd; // Maximum file descriptor for select
+        fd_set _read_fds;
+        fd_set _write_fds;
+        int _max_fd; // Maximum file descriptor for select
 
         // Buffers
-        std::map<int, std::string> read_buffer;
-        std::map<int, std::string> write_buffer;
-        std::map<int, size_t> bytes_sent;
+        std::map<int, std::string> _read_buffer;
+        std::map<int, std::string> _write_buffer;
+        std::map<int, size_t> _bytes_sent;
 
 
         ServerManager(const ServerManager &other);
         ServerManager &operator=(const ServerManager &other);
 
-        void handle_new_connection(int listening_socket);
-        std::string prepare_response(const std::string& request);
-        bool request_complete(const std::string& request);
-        void handle_read(int client_sock);
-        void handle_write(int client_sock);
-        void cleanup_client(int client_sock);
-        static void handle_signal(int signal);
+        void _handle_new_connection(int listening_socket);
+        std::string _prepare_response(const std::string& request);
+        bool _request_complete(const std::string& request);
+        void _handle_read(int client_sock);
+        void _handle_write(int client_sock);
+        void _cleanup_client(int client_sock);
+        static void _handle_signal(int signal);
 
     public:
         ServerManager();
