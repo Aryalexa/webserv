@@ -17,7 +17,7 @@ class ServerManager {
 
 
         static bool _running;
-        // sets
+        // select sets
         fd_set _read_fds;
         fd_set _write_fds;
         int _max_fd; // Maximum file descriptor for select

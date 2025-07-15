@@ -67,7 +67,7 @@ void ServerManager::init()
         FD_SET(fd, &_read_fds);    // Add to the read set
         if (fd > _max_fd) _max_fd = fd;  // Update _max_fd
 
-        std::cout << "🐡 Server started on port " << _servers[i].getPort() << std::endl;
+        logInfo("🐡 Server started on port %d", _servers[i].getPort());
     }
 
     fd_set temp_read_fds;
@@ -118,18 +118,22 @@ void ServerManager::_handle_new_connection(int listening_socket) {
     FD_SET(client_sock, &_read_fds);
     if (client_sock > _max_fd) _max_fd = client_sock;
 
-    std::cout << "🐟 New client connected on socket " << listening_socket << std::endl;
+    _read_buffer[client_sock] = ""; // Initialize read buffer for the new client
+    _write_buffer[client_sock] = ""; // Initialize write buffer for the new client
+    _bytes_sent[client_sock] = 0; // Initialize bytes sent for the new client
+    logInfo("🐠 New connection accepted on socket %d. Listening socket: %d", client_sock, listening_socket);
 }
 
 void ServerManager::_handle_write(int client_sock) {
 
     std::string remaining_response = _write_buffer[client_sock].substr(_bytes_sent[client_sock]);
-    std::cout << "🐠 Sending response:\n" << remaining_response << std::endl;
+    logInfo("🐠 Sending response to client socket %d", client_sock);
+    logDebug("🐠 Sending response: %s", remaining_response.c_str());
     size_t n = send(client_sock, remaining_response.c_str(), remaining_response.size(), 0);
 
     if (n <= 0) {
         _cleanup_client(client_sock);
-        std::cerr << "Error sending data, closing socket." << std::endl;
+        logError("Failed to send data to client socket %d: %s. Connection closed.", client_sock, strerror(errno));
         return;
     }
     _bytes_sent[client_sock] += n;
@@ -141,7 +145,7 @@ void ServerManager::_handle_read(int client_sock) {
     int n;
     std::string response;
 
-    std::cout << "🐟 Client connected" << std::endl;
+    logInfo("🐟 Client connected on socket %d", client_sock);
 
     n = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
     if (n < 0) {
@@ -149,20 +153,21 @@ void ServerManager::_handle_read(int client_sock) {
         exit(1);
     } else if (n == 0) {
         _cleanup_client(client_sock);
+        logError("Client disconnected on socket %d. Connection closed.", client_sock);
         return; // Client disconnected
-        std::cerr << "Error receiving data, closing socket." << std::endl;
     }
     buffer[n] = '\0'; // Null-terminate the received data
     _read_buffer[client_sock] += buffer; // Store the request in the read buffer
    
     if (!_request_complete(_read_buffer[client_sock])) {
-        std::cout << "🐠 Partial request received, waiting for more data..." << std::endl;
+        logInfo("🐠 Partial request received from client socket %d, waiting for more data...", client_sock);
         return; // Wait for more data to complete the request
     }
     // Request is complete, process it
-    std::cout << "🐠 Request complete, preparing response..." << std::endl;
-    _write_buffer[client_sock] = std::string ServerManager::prepare_response(const std::string& request) {
-(_read_buffer[client_sock]);
+    logInfo("🐠 Request complete from client socket %d", client_sock);
+    logDebug("🐠 Request: %s", _read_buffer[client_sock].c_str());
+    //  HttpRequest request = _parse_request(_read_buffer[client_sock]);
+    _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
     _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
     //FD_CLR(client_sock, &_read_fds); // only if client disconnects
     FD_SET(client_sock, &_write_fds);
@@ -212,6 +217,8 @@ std::string ServerManager::prepare_response(const std::string& request) {
     response += "\r\n";
     response += body;
 
+    // generate a response
+    //response = HttpResponse(); // TODO: args
     return response;
 }
 
@@ -222,7 +229,7 @@ void ServerManager::_cleanup_client(int client_sock) {
     _read_buffer.erase(client_sock);
     _write_buffer.erase(client_sock);
     _bytes_sent.erase(client_sock);
-    std::cout << "🐟 Client disconnected" << std::endl;
+    logInfo("🐟 Client socket %d cleaned up", client_sock);
 }
 
 void ServerManager::_handle_signal(int signal) {

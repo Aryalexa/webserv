@@ -48,6 +48,7 @@
 #include "ServerManager.hpp"
 #include "utils.hpp"
 #include "Request.hpp"
+#include "HttpResponse.hpp"
 
 # define SUCCESS    0
 # define ERROR      1
