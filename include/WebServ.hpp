@@ -45,9 +45,10 @@
 #include "../include/LocationParser.hpp"
 #include "../include/ConfigFile.hpp"
 #include "../include/ReadConfig.hpp"
-#include "../include/ServerManager.hpp"
-#include "../include/utils.hpp"
+#include "../include/HttpRequest.hpp"
 #include "../include/HttpResponse.hpp"
+#include "../include/utils.hpp"
+#include "../include/ServerManager.hpp"
 
 # define SUCCESS    0
 # define ERROR      1
@@ -60,6 +61,5 @@
 # define DEFAULT_CONFIG_FILE "config/default.config"
 
 std::string statusCodeString(short);
-int 		ft_stoi(std::string str);
 
 # endif

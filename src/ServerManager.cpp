@@ -143,6 +143,7 @@ void ServerManager::_handle_write(int client_sock) {
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
+    HttpRequest request;
     std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
@@ -166,8 +167,8 @@ void ServerManager::_handle_read(int client_sock) {
     // Request is complete, process it
     logInfo("🐠 Request complete from client socket %d", client_sock);
     logDebug("🐠 Request: %s", _read_buffer[client_sock].c_str());
-    //  HttpRequest request = _parse_request(_read_buffer[client_sock]);
-    _write_buffer[client_sock] = _generate_response(_read_buffer[client_sock]);
+    request = parse_http_request(_read_buffer[client_sock]);
+    _write_buffer[client_sock] = _generate_response(request);
     _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
     //FD_CLR(client_sock, &_read_fds); // only if client disconnects
     FD_SET(client_sock, &_write_fds);
@@ -178,9 +179,9 @@ bool ServerManager::_request_complete(const std::string& request) {
     // A complete HTTP request ends with "\r\n\r\n"
     return request.find("\r\n\r\n") != std::string::npos;
 }
-std::string ServerManager::_generate_response(const std::string& request) {
+std::string ServerManager::_generate_response(const HttpRequest& request) {
 
-    (void)request; // or httpRequest
+    (void)request;
     HttpResponse response;
 
 
@@ -190,6 +191,15 @@ std::string ServerManager::_generate_response(const std::string& request) {
     // TODO: check path, read file content and send it back
 	// limit the client to certain paths?
 
+
+    /*
+    - Find the correct resource or action
+    - Check HTTP method rules
+    - Apply redirections or aliases
+    - Locate the file or resource
+    - Consider CGI (dynamic content)
+    - Determine the response status
+    */
     // generate a response
     response = HttpResponse(); // TODO: args
     return response.toString();

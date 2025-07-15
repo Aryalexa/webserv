@@ -19,3 +19,28 @@ void set_nonblocking(int sock) {
         perror("fcntl set non-blocking");
     }
 }
+
+HttpRequest parse_http_request(const std::string &request_str) {
+    HttpRequest request;
+    try {
+        request = HttpRequest(request_str);
+    } catch (const std::exception &e) {
+        // bad request
+    }
+    return request;
+}
+
+int     ft_stoi(std::string str)
+{
+	std::stringstream ss(str);
+	if (str.length() > 10)
+		throw std::exception();
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		if(!isdigit(str[i]))
+			throw std::exception();
+	}
+	int res;
+	ss >> res;
+	return (res);
+}
