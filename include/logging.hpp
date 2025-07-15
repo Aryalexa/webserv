@@ -1,5 +1,5 @@
-#ifndef MESSAGE_HPP
-#define MESSAGE_HPP
+#ifndef LOGGING_HPP
+#define LOGGING_HPP
 
 #define RESET "\x1B[0m"
 #define RED   "\x1B[31m"

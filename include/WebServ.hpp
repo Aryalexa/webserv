@@ -61,6 +61,5 @@
 # define DEFAULT_CONFIG_FILE "config/default.config"
 
 std::string statusCodeString(short);
-int 		ft_stoi(std::string str);
 
 # endif

@@ -143,6 +143,7 @@ void ServerManager::_handle_write(int client_sock) {
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
+    //HttpRequest request;
     std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
@@ -217,6 +218,15 @@ std::string ServerManager::prepare_response(const std::string& request) {
     response += "\r\n";
     response += body;
 
+
+    /*
+    - Find the correct resource or action
+    - Check HTTP method rules
+    - Apply redirections or aliases
+    - Locate the file or resource
+    - Consider CGI (dynamic content)
+    - Determine the response status
+    */
     // generate a response
     //response = HttpResponse(); // TODO: args
     return response;
