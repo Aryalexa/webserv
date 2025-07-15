@@ -17,7 +17,7 @@ class ServerManager {
 
 
         static bool _running;
-        // sets
+        // select sets
         fd_set _read_fds;
         fd_set _write_fds;
         int _max_fd; // Maximum file descriptor for select
@@ -32,7 +32,7 @@ class ServerManager {
         ServerManager &operator=(const ServerManager &other);
 
         void _handle_new_connection(int listening_socket);
-        std::string _prepare_response(const std::string& request);
+        std::string _generate_response(const std::string& request);
         bool _request_complete(const std::string& request);
         void _handle_read(int client_sock);
         void _handle_write(int client_sock);

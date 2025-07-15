@@ -47,6 +47,7 @@
 #include "../include/ReadConfig.hpp"
 #include "../include/ServerManager.hpp"
 #include "../include/utils.hpp"
+#include "../include/HttpResponse.hpp"
 
 # define SUCCESS    0
 # define ERROR      1
