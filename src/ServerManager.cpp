@@ -171,17 +171,41 @@ bool ServerManager::request_complete(const std::string& request) {
     return request.find("\r\n\r\n") != std::string::npos;
 }
 std::string ServerManager::prepare_response(const std::string& request) {
-    std::string response;
 
-    (void)request;
+    Request req(request);
+    std::cout << request << std::endl;
+    std::cout << req << std::endl;
 
-    // TODO: check path, read file content and send it back
-	// limit the client to certain paths?
-    std::string body = "Hello, World!";
-    response = "HTTP/1.1 200 OK\r\n";
+    std::cout << "Método: " << req.getMethod() << std::endl;
+    std::cout << "Path: " << req.getPath() << std::endl;
+    std::cout << "Request: " << req << std::endl;
+
+    std::string file_path;
+    if (req.getPath() == "/" || req.getPath().empty()) {
+        file_path = "www/index.html";
+    } else {
+        file_path = "www" + req.getPath();
+    }
+
+    std::ifstream file(file_path.c_str(), std::ios::binary);
+    if (!file.is_open()) {
+        // Manejar error: archivo no encontrado
+        return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string body = buffer.str();
+
+    std::string content_type = "text/html";
+    if (file_path.find(".css") != std::string::npos) content_type = "text/css";
+    else if (file_path.find(".js") != std::string::npos) content_type = "application/javascript";
+    else if (file_path.find(".jpg") != std::string::npos || file_path.find(".jpeg") != std::string::npos) content_type = "image/jpeg";
+    else if (file_path.find(".png") != std::string::npos) content_type = "image/png";
+
+    std::string response = "HTTP/1.1 200 OK\r\n";
+    response += "Content-Type: " + content_type + "\r\n";
     response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-    response += "Content-Type: text/plain\r\n";
-    response += "Connection: close\r\n"; // Indicate that the connection will be closed
     response += "\r\n";
     response += body;
 
