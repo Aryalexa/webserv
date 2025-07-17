@@ -23,7 +23,7 @@ SRC       = src/ConfigFile.cpp \
 			src/utils.cpp \
 			src/Request.cpp \
 			src/HttpResponse.cpp \
-			src/HttpRequest.cpp \
+			src/Request.cpp \
 
 
 # Build folder

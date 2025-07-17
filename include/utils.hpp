@@ -1,9 +1,9 @@
 #ifndef UTILS_HPP
-#define UTILS_HPP
 
 #include "../include/WebServ.hpp"
 
 
+int 		                ft_stoi(std::string str);
 void                        set_nonblocking(int sock);
 std::string&                pop(std::string& str);
 std::string					readKey(const std::string& line);
@@ -17,6 +17,4 @@ std::vector<std::string>	split(const std::string& str, char c);
 void	                    ft_skip_spacenl(const char *str, int *i);
 int		                    ft_atoi(const char *str);
 bool                        compare_langs(const std::pair<std::string, float> first, const std::pair<std::string, float> second);
-int 		                ft_stoi(std::string str);
-
 #endif // UTILS_HPP
