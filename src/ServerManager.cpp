@@ -143,7 +143,7 @@ void ServerManager::_handle_write(int client_sock) {
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
-    HttpRequest request;
+    //HttpRequest request;
     std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
