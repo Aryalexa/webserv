@@ -40,15 +40,16 @@
 # include <sys/select.h>
 # include <arpa/inet.h>
 
-#include "../include/logging.hpp"
-#include "../include/ServerSetUp.hpp"
-#include "../include/LocationParser.hpp"
-#include "../include/ConfigFile.hpp"
-#include "../include/ReadConfig.hpp"
-#include "../include/HttpRequest.hpp"
-#include "../include/HttpResponse.hpp"
-#include "../include/utils.hpp"
-#include "../include/ServerManager.hpp"
+#include "logging.hpp"
+#include "ServerSetUp.hpp"
+#include "LocationParser.hpp"
+#include "ConfigFile.hpp"
+#include "ReadConfig.hpp"
+#include "ServerManager.hpp"
+#include "utils.hpp"
+#include "Request.hpp"
+#include "HttpResponse.hpp"
+
 
 # define SUCCESS    0
 # define ERROR      1

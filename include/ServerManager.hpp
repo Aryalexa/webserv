@@ -32,7 +32,8 @@ class ServerManager {
         ServerManager &operator=(const ServerManager &other);
 
         void _handle_new_connection(int listening_socket);
-        std::string _generate_response(const HttpRequest& request);
+        std::string prepare_response(const std::string& request);
+
         bool _request_complete(const std::string& request);
         void _handle_read(int client_sock);
         void _handle_write(int client_sock);

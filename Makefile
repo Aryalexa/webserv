@@ -21,8 +21,9 @@ SRC       = src/ConfigFile.cpp \
 			src/main.cpp \
 			src/statusCode.cpp \
 			src/utils.cpp \
+			src/Request.cpp \
 			src/HttpResponse.cpp \
-			src/HttpRequest.cpp \
+
 
 
 # Build folder

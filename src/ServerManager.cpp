@@ -167,8 +167,9 @@ void ServerManager::_handle_read(int client_sock) {
     // Request is complete, process it
     logInfo("🐠 Request complete from client socket %d", client_sock);
     logDebug("🐠 Request: %s", _read_buffer[client_sock].c_str());
-    request = parse_http_request(_read_buffer[client_sock]);
-    _write_buffer[client_sock] = _generate_response(request);
+    //request = parse_http_request(_read_buffer[client_sock]);
+    _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
+
     _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
     //FD_CLR(client_sock, &_read_fds); // only if client disconnects
     FD_SET(client_sock, &_write_fds);
@@ -179,17 +180,46 @@ bool ServerManager::_request_complete(const std::string& request) {
     // A complete HTTP request ends with "\r\n\r\n"
     return request.find("\r\n\r\n") != std::string::npos;
 }
-std::string ServerManager::_generate_response(const HttpRequest& request) {
 
-    (void)request;
-    HttpResponse response;
+std::string ServerManager::prepare_response(const std::string& request) {
 
+    Request req(request);
+    std::cout << request << std::endl;
+    std::cout << req << std::endl;
 
-    // make decision based on the request content
-    // For example, if the request is a GET request for "/hello", we can return
-    // a simple "Hello, World!" response.
-    // TODO: check path, read file content and send it back
-	// limit the client to certain paths?
+    std::cout << "Método: " << req.getMethod() << std::endl;
+    std::cout << "Path: " << req.getPath() << std::endl;
+    std::cout << "Request: " << req << std::endl;
+
+    std::string file_path;
+    if (req.getPath() == "/" || req.getPath().empty()) {
+        file_path = "www/index.html";
+    } else {
+        file_path = "www" + req.getPath();
+    }
+
+    std::ifstream file(file_path.c_str(), std::ios::binary);
+    if (!file.is_open()) {
+        // Manejar error: archivo no encontrado
+        return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string body = buffer.str();
+
+    std::string content_type = "text/html";
+    if (file_path.find(".css") != std::string::npos) content_type = "text/css";
+    else if (file_path.find(".js") != std::string::npos) content_type = "application/javascript";
+    else if (file_path.find(".jpg") != std::string::npos || file_path.find(".jpeg") != std::string::npos) content_type = "image/jpeg";
+    else if (file_path.find(".png") != std::string::npos) content_type = "image/png";
+
+    std::string response = "HTTP/1.1 200 OK\r\n";
+    response += "Content-Type: " + content_type + "\r\n";
+    response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+    response += "\r\n";
+    response += body;
+
 
 
     /*
@@ -201,8 +231,8 @@ std::string ServerManager::_generate_response(const HttpRequest& request) {
     - Determine the response status
     */
     // generate a response
-    response = HttpResponse(); // TODO: args
-    return response.toString();
+    //response = HttpResponse(); // TODO: args
+    return response;
 }
 
 void ServerManager::_cleanup_client(int client_sock) {

@@ -1,7 +1,7 @@
 #ifndef SERVERSETUP_HPP
 #define SERVERSETUP_HPP
 
-#include "../include/WebServ.hpp"
+#include "./WebServ.hpp"
 
 #define SYNTAX_ERR_HOST "Syntax Error: host"
 #define SYNTAX_ERR_ROOT "Syntax Error: root"
