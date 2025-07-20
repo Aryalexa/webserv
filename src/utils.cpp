@@ -6,18 +6,18 @@
  * TODO: is this really necessary when using select?
  */
 void set_nonblocking(int sock) {
-    int flags = fcntl(sock, F_GETFL, 0);
+	int flags = fcntl(sock, F_GETFL, 0);
     if (flags == -1) {
 		logInfo(
-            "Failed to get flags for socket %d: %s",
+			"Failed to get flags for socket %d: %s",
 			sock,
 			strerror(errno)
         );
-        return;
-    }
+		return;
+	}
     if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
-        perror("fcntl set non-blocking");
-    }
+		perror("fcntl set non-blocking");
+	}
 }
 
 std::string& pop(std::string& str)
@@ -46,7 +46,7 @@ std::string&	capitalize(std::string& str)
 	while((i = str.find_first_of('-', i + 1)) != std::string::npos)
 	{
 		if (i + 1 < str.size())
-		str[i + 1] = std::toupper(str[i + 1]);
+			str[i + 1] = std::toupper(str[i + 1]);
 	}
 	return str;
 }
@@ -59,7 +59,7 @@ std::string&	to_upper(std::string& str)
 
 std::string&	to_lower(std::string& str)
 {
-	std::transform(str.begin(), str.end(),str.begin(), ::tolower);
+	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 	return str;
 }
 
