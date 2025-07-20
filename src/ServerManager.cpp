@@ -143,7 +143,6 @@ void ServerManager::_handle_write(int client_sock) {
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
-    //Request request;
     std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
@@ -179,6 +178,7 @@ bool ServerManager::_request_complete(const std::string& request) {
     // A complete HTTP request ends with "\r\n\r\n"
     return request.find("\r\n\r\n") != std::string::npos;
 }
+
 std::string ServerManager::prepare_response(const std::string& request) {
 
     Request req(request);
