@@ -33,6 +33,7 @@ class ServerManager {
 
         void _handle_new_connection(int listening_socket);
         std::string prepare_response(const std::string& request);
+
         bool _request_complete(const std::string& request);
         void _handle_read(int client_sock);
         void _handle_write(int client_sock);

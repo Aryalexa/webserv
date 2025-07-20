@@ -143,6 +143,7 @@ void ServerManager::_handle_write(int client_sock) {
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
+    HttpRequest request;
     std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
@@ -168,6 +169,7 @@ void ServerManager::_handle_read(int client_sock) {
     logDebug("🐠 Request: %s", _read_buffer[client_sock].c_str());
     //request = parse_http_request(_read_buffer[client_sock]);
     _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
+
     _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
     //FD_CLR(client_sock, &_read_fds); // only if client disconnects
     FD_SET(client_sock, &_write_fds);
@@ -217,6 +219,7 @@ std::string ServerManager::prepare_response(const std::string& request) {
     response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
     response += "\r\n";
     response += body;
+
 
 
     /*
