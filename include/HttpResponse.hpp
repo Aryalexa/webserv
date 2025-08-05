@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
-#include <iostream>
+#include "../include/WebServ.hpp"
+
 
 struct ResponseStatus {
     int code;
@@ -27,19 +27,26 @@ struct ResponseHeaders {
 class HttpResponse
 {
 private:
+	const HttpRequest &_request;
 	ResponseStatus _status_line;
 	ResponseHeaders _headers;
 	std::string _body;
-
-public:
-	static const std::string CRLF;
-	static const std::string version;
+	
 	HttpResponse();
 	HttpResponse(const HttpResponse &other);
 	HttpResponse &operator=(const HttpResponse &other);
+	
+public:
+	static const std::string CRLF;
+	static const std::string version;
+
+	HttpResponse(const HttpRequest &request);
 	~HttpResponse();
+
 	std::string getStatusLine() const ;
 	std::string getHeaders() const ;
 	std::string getBody() const ;
 	std::string toString() const ;
+
+	void handle_GET()
 };
