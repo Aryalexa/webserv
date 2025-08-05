@@ -141,3 +141,25 @@ void HttpRequest::_parse_body(const std::string &body) {
 
     logDebug("Parsed body: %s", _body.c_str());
 }
+
+const std::string &HttpRequest::getMethod() const {
+	return _method;
+}
+const std::string &HttpRequest::getUri() const {
+	return _uri;
+}
+const std::string &HttpRequest::getVersion() const {
+	return _version;
+}
+// const std::string &HttpRequest::getHeader(const std::string &key) const {
+	
+// }
+const std::map<std::string, std::string> &HttpRequest::getHeaders() const {
+	return _headers;
+}
+const std::string &HttpRequest::getBody() const {
+	return _body;
+}
+const std::string &HttpRequest::getPath() const {
+	return _uri; // Assuming the path is the same as the URI
+}

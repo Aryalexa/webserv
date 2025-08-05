@@ -49,6 +49,7 @@
 #include "utils.hpp"
 #include "Request.hpp"
 #include "HttpResponse.hpp"
+#include "HttpRequest.hpp"
 
 
 # define SUCCESS    0

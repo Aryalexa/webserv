@@ -191,6 +191,15 @@ std::string ServerManager::prepare_response(const std::string& request) {
     std::cout << "Path: " << req.getPath() << std::endl;
     std::cout << "Request: " << req << std::endl;
 
+    HttpResponse response = HttpResponse(request);
+
+    if (req.getMethod() == "GET") {
+
+    }
+    else {
+        // Manejar métodos no soportados
+        return "HTTP/1.1 501 Not Implemented\r\nContent-Type: text/plain\r\n\r\nMethod Not Implemented";
+    }
     std::string file_path;
     if (req.getPath() == "/" || req.getPath().empty()) {
         file_path = "www/index.html";
