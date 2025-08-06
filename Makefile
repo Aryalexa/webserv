@@ -16,7 +16,6 @@ SRC       = src/ConfigFile.cpp \
 			src/LocationParser.cpp \
 			src/logging.cpp \
 			src/ReadConfig.cpp \
-			src/ServerManager.cpp \
 			src/ServerSetUp.cpp \
 			src/main.cpp \
 			src/statusCode.cpp \

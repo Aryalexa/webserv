@@ -27,7 +27,7 @@ struct ResponseHeaders {
 class HttpResponse
 {
 private:
-	const HttpRequest &_request;
+	const Request &_request;
 	ResponseStatus _status_line;
 	ResponseHeaders _headers;
 	std::string _body;
@@ -40,13 +40,15 @@ public:
 	static const std::string CRLF;
 	static const std::string version;
 
-	HttpResponse(const HttpRequest &request);
+	HttpResponse(const Request &request);
 	~HttpResponse();
 
 	std::string getStatusLine() const ;
 	std::string getHeaders() const ;
 	std::string getBody() const ;
 	std::string toString() const ;
+	std::string getResponse() const;
 
-	void handle_GET()
+	void handle_GET();
+
 };

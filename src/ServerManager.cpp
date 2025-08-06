@@ -128,7 +128,6 @@ void ServerManager::_handle_write(int client_sock) {
 
     std::string remaining_response = _write_buffer[client_sock].substr(_bytes_sent[client_sock]);
     logInfo("🐠 Sending response to client socket %d", client_sock);
-    logDebug("🐠 Sending response: %s", remaining_response.c_str());
     size_t n = send(client_sock, remaining_response.c_str(), remaining_response.size(), 0);
 
     if (n <= 0) {
@@ -204,76 +203,15 @@ bool ServerManager::_request_complete(const std::string& request) {
     return body_size >= (size_t)content_length;
 }
 
-std::string ServerManager::prepare_response(const std::string& request) {
-    Request req(request);
-    std::string file_path;
+std::string ServerManager::prepare_response(const std::string &request_str) {
 
-    if (req.getMethod() == "POST" && req.getPath() == "/upload") {
-        std::cout << "[DEBUG] Body size: " << req.getBody().size() << std::endl;
-        Cgi cgi("cgi-bin/saveFile.py");
-        std::string cgi_output = cgi.run(req);
+    Request request(request_str);
+    logDebug("preparing response for query: %s %s", request.getMethod().c_str(), request.getPath().c_str());
 
-        // Redirección tras POST
-        std::string response = "HTTP/1.1 303 See Other\r\n";
-        response += "Location: /\r\n";
-        response += "Content-Length: 0\r\n";
-        response += "\r\n";
-        return response;
-    }
-    else if (req.getMethod() == "DELETE" ) {
-        std::cout << "[DEBUG] path: " << req.getPath() << std::endl;
-        Cgi cgi("cgi-bin/deleteFile.py");
-        std::string cgi_output = cgi.run(req);
-        
-        // Redirección tras POST
-        std::string response = "HTTP/1.1 303 See Other\r\n";
-        response += "Location: /\r\n";
-        response += "Content-Length: 0\r\n";
-        response += "\r\n";
-        return response;
-    }
-    else {
-        if (req.getPath() == "/" || req.getPath() == "/index.html") {
-            return generate_index();
-        } else {
-            file_path = "www" + req.getPath();
-        }
-    }
+    HttpResponse response(request);
+    std::string response_str = response.getResponse();
 
-    std::ifstream file(file_path.c_str(), std::ios::binary);
-    if (!file.is_open()) {
-        return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
-    }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string body = buffer.str();
-
-    std::string content_type = "text/html";
-    if (file_path.find(".css") != std::string::npos) content_type = "text/css";
-    else if (file_path.find(".js") != std::string::npos) content_type = "application/javascript";
-    else if (file_path.find(".jpg") != std::string::npos || file_path.find(".jpeg") != std::string::npos) content_type = "image/jpeg";
-    else if (file_path.find(".png") != std::string::npos) content_type = "image/png";
-
-    std::string response = "HTTP/1.1 200 OK\r\n";
-    response += "Content-Type: " + content_type + "\r\n";
-    response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-    response += "\r\n";
-    response += body;
-
-
-
-    /*
-    - Find the correct resource or action
-    - Check HTTP method rules
-    - Apply redirections or aliases
-    - Locate the file or resource
-    - Consider CGI (dynamic content)
-    - Determine the response status
-    */
-    // generate a response
-    //response = HttpResponse(); // TODO: args
-    return response;
+    return response_str;
 }
 
 void ServerManager::_cleanup_client(int client_sock) {
