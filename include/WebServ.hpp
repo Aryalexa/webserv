@@ -45,11 +45,10 @@
 #include "LocationParser.hpp"
 #include "ConfigFile.hpp"
 #include "ReadConfig.hpp"
-#include "ServerManager.hpp"
 #include "utils.hpp"
 #include "Request.hpp"
 #include "HttpResponse.hpp"
-#include "HttpRequest.hpp"
+#include "ServerManager.hpp"
 
 
 # define SUCCESS    0

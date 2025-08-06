@@ -157,3 +157,7 @@ int     ft_stoi(std::string str)
 	ss >> res;
 	return (res);
 }
+
+bool in_str(const std::string &word, const std::string &str) {
+	return str.find(word) != std::string::npos;
+}
