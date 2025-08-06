@@ -178,14 +178,48 @@ bool ServerManager::_request_complete(const std::string& request) {
 }
 
 std::string ServerManager::prepare_response(const std::string &request_str) {
-
+    std::string response_str;
 
     Request request(request_str);
     logDebug("preparing response for query: %s %s", request.getMethod().c_str(), request.getPath().c_str());
+    try {
+        HttpResponse response(request);
+        response_str = response.getResponse();
+    } catch (const HttpException &e) {
+        int code = e.getStatusCode();
+        std::cout << "Excepción capturada: " << e.what() << std::endl;
 
-    HttpResponse response(request);
-    std::string response_str = response.getResponse();
+        prepare_error_response(code, request);
+    }
 
+    return response_str;
+}
+
+std::string ServerManager::prepare_error_response(int code, const Request &request) {
+    std::string response_str;
+
+    std::string message = statusCodeString(code);
+    switch (code) {
+        case HttpStatusCode::NotFound: // show error page
+            {
+                std::cout << "🍊🍊🍊🍊🍊Acción: Mostrar página de error 404." << std::endl;
+                HttpResponse response(request, code);
+                response_str = response.getResponse();
+            }
+            break;
+        case HttpStatusCode::InternalServerError:
+            logError("Error. %s. Acción: Revisar los registros del servidor.", message.c_str());
+            exit(2);
+            break;
+        case HttpStatusCode::BadRequest:
+            logError("Error. %s. Acción: Validar la solicitud del cliente.", message.c_str());
+            exit(2);
+            break;
+        default:
+            logError("Error no gestionado: %s. hacer algo!.", message.c_str());
+            exit(2);
+            break;
+    }
     return response_str;
 }
 

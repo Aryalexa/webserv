@@ -7,13 +7,8 @@ struct ResponseStatus {
     int code;
     std::string message;
 
-    static const ResponseStatus HTTP_OK;
-    static const ResponseStatus HTTP_NOT_FOUND;
-    static const ResponseStatus HTTP_INTERNAL_SERVER_ERROR;
-	static const ResponseStatus HTTP_BAD_REQUEST;
-	static const ResponseStatus HTTP_FORBIDDEN;
-	static const ResponseStatus HTTP_NOT_IMPLEMENTED;
-	static const ResponseStatus HTTP_SERVICE_UNAVAILABLE;
+	ResponseStatus();
+	ResponseStatus(int code, const std::string& message);
 };
 
 struct ResponseHeaders {
@@ -41,6 +36,7 @@ public:
 	static const std::string version;
 
 	HttpResponse(const Request &request);
+	HttpResponse(const Request &request, int errorCode);
 	~HttpResponse();
 
 	std::string getStatusLine() const ;
