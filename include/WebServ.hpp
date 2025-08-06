@@ -41,6 +41,7 @@
 # include <arpa/inet.h>
 
 #include "logging.hpp"
+#include "statusCode.hpp"
 #include "ServerSetUp.hpp"
 #include "LocationParser.hpp"
 #include "ConfigFile.hpp"
@@ -62,6 +63,5 @@
 
 # define DEFAULT_CONFIG_FILE "config/default.config"
 
-std::string statusCodeString(short);
 
 # endif
