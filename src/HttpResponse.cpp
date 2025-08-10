@@ -56,7 +56,7 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
                 << "<div class=\"message\">"
 
                 // Puedes agregar un mensaje personalizado para cada error
-                << "Lo sentimos, pero la página que estás buscando no se encuentra en el servidor."
+                << "We are sorry."
                 << "</div>"
                 << "</body>"
                 << "</html>";
@@ -67,7 +67,7 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
 
   _headers.content_type = "text/html";
   _headers.content_length = to_string(_body.size());
-  _headers.connection = "text/html";
+  _headers.connection = "keep-alive";
 
 }
 
