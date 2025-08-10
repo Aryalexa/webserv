@@ -189,7 +189,7 @@ std::string ServerManager::prepare_response(const std::string &request_str) {
         int code = e.getStatusCode();
         std::cout << "Excepción capturada: " << e.what() << std::endl;
 
-        prepare_error_response(code, request);
+        response_str = prepare_error_response(code, request);
     }
 
     return response_str;
@@ -202,7 +202,7 @@ std::string ServerManager::prepare_error_response(int code, const Request &reque
     switch (code) {
         case HttpStatusCode::NotFound: // show error page
             {
-                std::cout << "🍊🍊🍊🍊🍊Acción: Mostrar página de error 404." << std::endl;
+                logError("🍊 Acción: Mostrar página de error %d.", code);
                 HttpResponse response(request, code);
                 response_str = response.getResponse();
             }
