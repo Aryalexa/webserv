@@ -143,64 +143,93 @@ void ServerManager::_handle_write(int client_sock) {
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
-    //HttpRequest request;
-    std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
 
-    n = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
-    if (n < 0) {
-        logError("Failed to receive data from client");
-        exit(1);
-    } else if (n == 0) {
-        _cleanup_client(client_sock);
-        logError("Client disconnected on socket %d. Connection closed.", client_sock);
-        return; // Client disconnected
+    while ((n = recv(client_sock, buffer, sizeof(buffer), 0)) > 0) {
+        _read_buffer[client_sock].append(buffer, n);
     }
-    buffer[n] = '\0'; // Null-terminate the received data
-    _read_buffer[client_sock] += buffer; // Store the request in the read buffer
-   
+    if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+        logError("Failed to receive data from client");
+        _cleanup_client(client_sock);
+        return;
+    }
+
+    if (n == 0) {
+        if (_request_complete(_read_buffer[client_sock])) {
+            logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
+            _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
+        } else {
+            logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
+            _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<h1>400 Bad Request</h1>";
+        }
+        _bytes_sent[client_sock] = 0;
+        FD_SET(client_sock, &_write_fds);
+        return;
+    }
+
     if (!_request_complete(_read_buffer[client_sock])) {
         logInfo("🐠 Partial request received from client socket %d, waiting for more data...", client_sock);
-        return; // Wait for more data to complete the request
+        return;
     }
-    // Request is complete, process it
     logInfo("🐠 Request complete from client socket %d", client_sock);
-    logDebug("🐠 Request: %s", _read_buffer[client_sock].c_str());
-    //request = parse_http_request(_read_buffer[client_sock]);
     _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
-
-    _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
-    //FD_CLR(client_sock, &_read_fds); // only if client disconnects
+    _bytes_sent[client_sock] = 0;
     FD_SET(client_sock, &_write_fds);
 }
 
 bool ServerManager::_request_complete(const std::string& request) {
-    // Check if the request is complete by looking for the end of headers
-    // A complete HTTP request ends with "\r\n\r\n"
-    return request.find("\r\n\r\n") != std::string::npos;
+    size_t header_end = request.find("\r\n\r\n");
+    if (header_end == std::string::npos)
+        return false; // Headers incompletos
+
+    size_t cl_pos = request.find("Content-Length:");
+    if (cl_pos == std::string::npos)
+        return true; // No hay body, solo headers
+
+    size_t cl_end = request.find("\r\n", cl_pos);
+    std::string cl_str = request.substr(cl_pos + 15, cl_end - (cl_pos + 15));
+    cl_str.erase(0, cl_str.find_first_not_of(" \t"));
+    cl_str.erase(cl_str.find_last_not_of(" \t") + 1);
+    int content_length = atoi(cl_str.c_str());
+
+    size_t body_start = header_end + 4;
+    size_t body_size = request.size() - body_start;
+
+    std::cout << "[DEBUG] header_end: " << header_end << std::endl;
+    std::cout << "[DEBUG] content_length: " << content_length << std::endl;
+    std::cout << "[DEBUG] body_start: " << body_start << std::endl;
+    std::cout << "[DEBUG] body_size: " << body_size << std::endl;
+
+    return body_size >= (size_t)content_length;
 }
 
 std::string ServerManager::prepare_response(const std::string& request) {
-
     Request req(request);
-    std::cout << request << std::endl;
-    std::cout << req << std::endl;
-
-    std::cout << "Método: " << req.getMethod() << std::endl;
-    std::cout << "Path: " << req.getPath() << std::endl;
-    std::cout << "Request: " << req << std::endl;
-
     std::string file_path;
-    if (req.getPath() == "/" || req.getPath().empty()) {
-        file_path = "www/index.html";
-    } else {
-        file_path = "www" + req.getPath();
+
+    if (req.getMethod() == "POST" && req.getPath() == "/upload") {
+        std::cout << "[DEBUG] Body size: " << req.getBody().size() << std::endl;
+        Cgi cgi("cgi-bin/saveFile.py");
+        std::string cgi_output = cgi.run(req);
+        return generate_index();
+    }
+    else if (req.getMethod() == "DELETE" ) {
+        std::cout << "[DEBUG] path: " << req.getPath() << std::endl;
+        Cgi cgi("cgi-bin/deleteFile.py");
+        std::string cgi_output = cgi.run(req);
+        return generate_index();
+    }
+    else {
+        if (req.getPath() == "/" || req.getPath() == "/index.html") {
+            return generate_index();
+        } else {
+            file_path = "www" + req.getPath();
+        }
     }
 
     std::ifstream file(file_path.c_str(), std::ios::binary);
     if (!file.is_open()) {
-        // Manejar error: archivo no encontrado
         return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
     }
 
@@ -248,4 +277,28 @@ void ServerManager::_cleanup_client(int client_sock) {
 void ServerManager::_handle_signal(int signal) {
 	(void)signal;
     ServerManager::_running = false;
+}
+
+std::string ServerManager::generate_index() {
+    std::ifstream file("www/index.html");
+    if (!file.is_open()) {
+        return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string html = buffer.str();
+
+    Cgi cgi("cgi-bin/getIndex.py");
+    std::string galeria = cgi.run(Request("GET / / HTTP/1.1\r\n\r\n")); // Puedes pasar un Request vacío o uno simulado
+
+    size_t pos = html.find("<!--GALERIA-->");
+    if (pos != std::string::npos)
+        html.replace(pos, std::string("<!--GALERIA-->").length(), galeria);
+
+    std::string response = "HTTP/1.1 200 OK\r\n";
+    response += "Content-Type: text/html\r\n";
+    response += "Content-Length: " + std::to_string(html.size()) + "\r\n";
+    response += "\r\n";
+    response += html;
+    return response;
 }

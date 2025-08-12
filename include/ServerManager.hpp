@@ -39,6 +39,7 @@ class ServerManager {
         void _handle_write(int client_sock);
         void _cleanup_client(int client_sock);
         static void _handle_signal(int signal);
+        std::string generate_index();
 
     public:
         ServerManager();
