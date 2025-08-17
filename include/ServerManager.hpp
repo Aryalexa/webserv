@@ -9,11 +9,9 @@ class ServerSetUp;
 
 class ServerManager {
     private:
-        std::vector<ServerSetUp>           _servers;
-        std::map<int,ServerSetUp>          _servers_map;
-        // fd_set                              _recv_fd_pool;
-        // fd_set                              _write_fd_pool;
-        // int                                 _biggest_fd;
+        std::vector<ServerSetUp>    _servers;
+        std::map<int,ServerSetUp>   _servers_map;
+        //std::map<int, int>          _client_server_map; // Buffer for incoming requests
 
 
         static bool _running;
@@ -41,7 +39,8 @@ class ServerManager {
         void _handle_write(int client_sock);
         void _cleanup_client(int client_sock);
         static void _handle_signal(int signal);
-        std::string generate_index();
+        void _init_server_unit(ServerSetUp server);
+
 
     public:
         ServerManager();
