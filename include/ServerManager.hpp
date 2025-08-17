@@ -30,8 +30,8 @@ class ServerManager {
         ServerManager &operator=(const ServerManager &other);
 
         void _handle_new_connection(int listening_socket);
-        std::string prepare_response(const std::string& request);
-        std::string prepare_error_response(int code, const Request &request);
+        std::string prepare_response(int client_socket, const std::string& request);
+        std::string prepare_error_response(int client_socket, int code, const Request &request);
 
 
         bool _request_complete(const std::string& request);

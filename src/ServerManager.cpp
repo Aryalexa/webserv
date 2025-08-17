@@ -184,7 +184,7 @@ void ServerManager::_handle_read(int client_sock) {
     }
     // Request is complete, process it
     logInfo("🐠 Request complete from client socket %d", client_sock);
-    _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
+    _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
 
     _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
     //FD_CLR(client_sock, &_read_fds); // only if client disconnects
@@ -197,27 +197,54 @@ bool ServerManager::_request_complete(const std::string& request) {
     return request.find("\r\n\r\n") != std::string::npos;
 }
 
-std::string ServerManager::prepare_response(const std::string &request_str) {
+std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
     std::string response_str;
 
     Request request(request_str);
-    logDebug("preparing response for query: %s %s", request.getMethod().c_str(), request.getPath().c_str());
+    logDebug("preparing response. client socket: %i. query: %s %s",
+        client_socket,
+        request.getMethod().c_str(), 
+        request.getPath().c_str()
+    );
     try {
         HttpResponse response(request);
         response_str = response.getResponse();
     } catch (const HttpException &e) {
         int code = e.getStatusCode();
         std::cout << "Excepción capturada: " << e.what() << std::endl;
-
-        response_str = prepare_error_response(code, request);
+        response_str = prepare_error_response(client_socket, code, request);
+        
+    } catch (const std::exception &e) {
+        // raise exc?
+        logError("Exception: %s", e.what());
+        //int code = HttpStatusCode::InternalServerError; // Default to 500 Internal Server
+        exit(1);
     }
 
     return response_str;
 }
 
-std::string ServerManager::prepare_error_response(int code, const Request &request) {
+std::string ServerManager::prepare_error_response(int client_socket, int code, const Request &request) {
+    logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
     std::string response_str;
-
+    // first: try error page in config
+    // if (_client_server_map.find(client_socket) == _client_server_map.end()) {
+    //     logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
+    //     // Devuelve una respuesta de error genérica
+    //     HttpResponse response(request, HttpStatusCode::InternalServerError);
+    //     return response.getResponse();
+    // }
+    // int server_fd = _client_server_map[client_socket];
+    int server_fd = -1; // TODO: get server fd from client socket
+    std::string err_page_path = _servers_map[server_fd].getPathErrorPage(code);
+    if (!err_page_path.empty()) {
+        logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
+        HttpResponse response(request, code, err_page_path);
+        response_str = response.getResponse();
+        return response_str;
+    }
+    logDebug("---prepare_error_response: error page for code %d not found in server config", code);
+    // if not found, treat web server error
     std::string message = statusCodeString(code);
     switch (code) {
         case HttpStatusCode::NotFound: // show error page
