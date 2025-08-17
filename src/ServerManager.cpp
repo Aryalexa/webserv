@@ -177,7 +177,7 @@ void ServerManager::_handle_read(int client_sock) {
     if (n == 0) {
         if (_request_complete(_read_buffer[client_sock])) {
             logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
-            _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
+            _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
         } else {
             logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
             _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<h1>400 Bad Request</h1>";
@@ -192,8 +192,10 @@ void ServerManager::_handle_read(int client_sock) {
         return;
     }
     logInfo("🐠 Request complete from client socket %d", client_sock);
-    _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
-    _bytes_sent[client_sock] = 0;
+    _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
+
+    _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
+    //FD_CLR(client_sock, &_read_fds); // only if client disconnects
     FD_SET(client_sock, &_write_fds);
 }
 
@@ -223,27 +225,54 @@ bool ServerManager::_request_complete(const std::string& request) {
     return body_size >= (size_t)content_length;
 }
 
-std::string ServerManager::prepare_response(const std::string &request_str) {
+std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
     std::string response_str;
 
     Request request(request_str);
-    logDebug("preparing response for query: %s %s", request.getMethod().c_str(), request.getPath().c_str());
+    logDebug("preparing response. client socket: %i. query: %s %s",
+        client_socket,
+        request.getMethod().c_str(), 
+        request.getPath().c_str()
+    );
     try {
         HttpResponse response(request);
         response_str = response.getResponse();
     } catch (const HttpException &e) {
         int code = e.getStatusCode();
         std::cout << "Excepción capturada: " << e.what() << std::endl;
-
-        response_str = prepare_error_response(code, request);
+        response_str = prepare_error_response(client_socket, code, request);
+        
+    } catch (const std::exception &e) {
+        // raise exc?
+        logError("Exception: %s", e.what());
+        //int code = HttpStatusCode::InternalServerError; // Default to 500 Internal Server
+        exit(1);
     }
 
     return response_str;
 }
 
-std::string ServerManager::prepare_error_response(int code, const Request &request) {
+std::string ServerManager::prepare_error_response(int client_socket, int code, const Request &request) {
+    logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
     std::string response_str;
-
+    // first: try error page in config
+    // if (_client_server_map.find(client_socket) == _client_server_map.end()) {
+    //     logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
+    //     // Devuelve una respuesta de error genérica
+    //     HttpResponse response(request, HttpStatusCode::InternalServerError);
+    //     return response.getResponse();
+    // }
+    // int server_fd = _client_server_map[client_socket];
+    int server_fd = -1; // TODO: get server fd from client socket
+    std::string err_page_path = _servers_map[server_fd].getPathErrorPage(code);
+    if (!err_page_path.empty()) {
+        logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
+        HttpResponse response(request, code, err_page_path);
+        response_str = response.getResponse();
+        return response_str;
+    }
+    logDebug("---prepare_error_response: error page for code %d not found in server config", code);
+    // if not found, treat web server error
     std::string message = statusCodeString(code);
     switch (code) {
         case HttpStatusCode::NotFound: // show error page
@@ -283,28 +312,4 @@ void ServerManager::_cleanup_client(int client_sock) {
 void ServerManager::_handle_signal(int signal) {
 	(void)signal;
     ServerManager::_running = false;
-}
-
-std::string ServerManager::generate_index() {
-    std::ifstream file("www/index.html");
-    if (!file.is_open()) {
-        return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string html = buffer.str();
-
-    Cgi cgi("cgi-bin/getIndex.py");
-    std::string galeria = cgi.run(Request("GET / / HTTP/1.1\r\n\r\n")); // Puedes pasar un Request vacío o uno simulado
-
-    size_t pos = html.find("<!--GALERIA-->");
-    if (pos != std::string::npos)
-        html.replace(pos, std::string("<!--GALERIA-->").length(), galeria);
-
-    std::string response = "HTTP/1.1 200 OK\r\n";
-    response += "Content-Type: text/html\r\n";
-    response += "Content-Length: " + std::to_string(html.size()) + "\r\n";
-    response += "\r\n";
-    response += html;
-    return response;
 }

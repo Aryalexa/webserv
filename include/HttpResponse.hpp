@@ -37,6 +37,7 @@ public:
 
 	HttpResponse(const Request &request);
 	HttpResponse(const Request &request, int errorCode);
+	HttpResponse(const Request &request, int errorCode, const std::string errorPagePath);
 	~HttpResponse();
 
 	std::string getStatusLine() const ;

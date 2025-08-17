@@ -35,11 +35,11 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
  
 }
 
-HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(request) {
+std::string get_deafult_error_page(int errorCode) {
   std::string errorMessage = statusCodeString(errorCode);
   
   std::stringstream htmlResponse;
-    htmlResponse << "<!DOCTYPE html>"
+  htmlResponse << "<!DOCTYPE html>"
                 << "<html lang=\"en\">"
                 << "<head>"
                 << "<meta charset=\"UTF-8\">"
@@ -60,15 +60,26 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
                 << "</div>"
                 << "</body>"
                 << "</html>";
-  
-  
-  _status_line = ResponseStatus(errorCode, errorMessage);
-  _body = htmlResponse.str();
+  return htmlResponse.str();
+}
+
+HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(request) {
+  _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
+  _body = get_deafult_error_page(errorCode);
 
   _headers.content_type = "text/html";
   _headers.content_length = to_string(_body.size());
   _headers.connection = "keep-alive";
 
+}
+HttpResponse::HttpResponse(const Request &request, int errorCode, const std::string errorPagePath) : _request(request) {
+  _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
+  std::string valid_path = errorPagePath.substr(1, errorPagePath.size() - 1);
+  _body = read_file_binary(valid_path);
+
+  _headers.content_type = "text/html";
+  _headers.content_length = to_string(_body.size());
+  _headers.connection = "keep-alive";
 }
 
 
@@ -125,14 +136,7 @@ std::string discover_content_type(const std::string &filename) {
 void HttpResponse::handle_GET() {
 
   std::string file_path = validate_path(_request.getPath());
-  std::ifstream file(file_path.c_str(), std::ios::binary);
-  if (!file) {
-    logError("No se pudo abrir el archivo.");
-    throw HttpException(HttpStatusCode::Forbidden);; // TODO: what? que error va aqui?
-  }
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  _body = buffer.str();
+  _body = read_file_binary(file_path);
 
   _headers.content_type = discover_content_type(file_path);
   _headers.content_length = to_string(_body.size());
