@@ -139,8 +139,25 @@ void ServerManager::_handle_write(int client_sock) {
         return;
     }
     _bytes_sent[client_sock] += n;
-    if (_bytes_sent[client_sock] == _write_buffer[client_sock].size())
-        _cleanup_client(client_sock);
+    if (_bytes_sent[client_sock] == _write_buffer[client_sock].size()) {
+       if (_should_close_connection(_read_buffer[client_sock], _write_buffer[client_sock])) {
+            _cleanup_client(client_sock);
+        } else {
+            // Mantener la conexión: limpiar buffers y volver a modo lectura
+            _read_buffer[client_sock].clear();
+            _write_buffer[client_sock].clear();
+            _bytes_sent[client_sock] = 0;
+            FD_CLR(client_sock, &_write_fds);
+            FD_SET(client_sock, &_read_fds);
+        }
+    }
+}
+bool ServerManager::_should_close_connection(const std::string& request, const std::string& response) {
+    // Check if the request or response contains "Connection: close"
+    bool closing = in_str(request, "Connection: close") ||
+                    in_str(response, "Connection: close");
+    if (closing) logError("🐠 Should close connection: %s", closing ? "Yes" : "No");
+    return closing;
 }
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];

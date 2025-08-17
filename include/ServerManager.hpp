@@ -35,6 +35,7 @@ class ServerManager {
 
 
         bool _request_complete(const std::string& request);
+        bool _should_close_connection(const std::string& request, const std::string& response);
         void _handle_read(int client_sock);
         void _handle_write(int client_sock);
         void _cleanup_client(int client_sock);
