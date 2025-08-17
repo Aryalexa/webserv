@@ -46,6 +46,20 @@ void ServerManager::setup(const std::vector<ServerSetUp>& configs) {
         );
     }
 }
+void ServerManager::_init_server_unit(ServerSetUp server) {
+    // listen
+    int fd = server.getFd();
+    if (listen(fd, BACKLOG_SIZE) < 0) {
+        logInfo("listen(%d) failed: %s", fd, strerror(errno));
+        exit(ERROR);
+    }
+    // Add to the read set
+    FD_SET(fd, &_read_fds);
+    // Update _max_fd
+    if (fd > _max_fd) _max_fd = fd;
+    logInfo("🐡 Server started on port %d", server.getPort());
+
+}
 
 void ServerManager::init()
 {
@@ -56,19 +70,7 @@ void ServerManager::init()
 	FD_ZERO(&_write_fds);
 
     for (size_t i = 0; i < _servers.size(); ++i) 
-    {
-        int fd = _servers[i].getFd();
-
-        if (listen(fd, BACKLOG_SIZE) < 0) {
-            logInfo("listen(%d) failed: %s", fd, strerror(errno));
-            exit(ERROR);
-        }
-
-        FD_SET(fd, &_read_fds);    // Add to the read set
-        if (fd > _max_fd) _max_fd = fd;  // Update _max_fd
-
-        logInfo("🐡 Server started on port %d", _servers[i].getPort());
-    }
+        _init_server_unit(_servers[i]); // Initialize each server unit
 
     fd_set temp_read_fds;
     fd_set temp_write_fds;
@@ -118,6 +120,7 @@ void ServerManager::_handle_new_connection(int listening_socket) {
     FD_SET(client_sock, &_read_fds);
     if (client_sock > _max_fd) _max_fd = client_sock;
 
+    //_client_server_map[client_sock] = listening_socket; // Map client socket to server socket
     _read_buffer[client_sock] = ""; // Initialize read buffer for the new client
     _write_buffer[client_sock] = ""; // Initialize write buffer for the new client
     _bytes_sent[client_sock] = 0; // Initialize bytes sent for the new client
@@ -227,6 +230,7 @@ void ServerManager::_cleanup_client(int client_sock) {
     FD_CLR(client_sock, &_read_fds);
     FD_CLR(client_sock, &_write_fds);
     close(client_sock);
+    //_client_server_map.erase(client_sock);
     _read_buffer.erase(client_sock);
     _write_buffer.erase(client_sock);
     _bytes_sent.erase(client_sock);
