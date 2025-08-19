@@ -45,6 +45,7 @@ public:
 	std::string getBody() const ;
 	std::string toString() const ;
 	std::string getResponse() const;
+	void generate_index();
 
 	void handle_GET();
 

@@ -26,6 +26,18 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
 
   if (request.getMethod() == "GET") 
     handle_GET();
+  else if (request.getMethod() == "POST" && request.getPath() == "/upload") {
+    std::cout << "[DEBUG] Body size: " << request.getBody().size() << std::endl;
+    Cgi cgi("cgi-bin/saveFile.py");
+    std::string cgi_output = cgi.run(request);
+    generate_index();
+  }
+  else if (request.getMethod() == "DELETE" ) {
+      std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
+      Cgi cgi("cgi-bin/deleteFile.py");
+      std::string cgi_output = cgi.run(request);
+      generate_index();
+  }
 
   if ( _body.empty() || _headers.content_type.empty() || _headers.connection.empty()
   || _status_line.code == 0) {
@@ -136,6 +148,10 @@ std::string discover_content_type(const std::string &filename) {
 void HttpResponse::handle_GET() {
 
   std::string file_path = validate_path(_request.getPath());
+  if(_request.getPath() == "/" || _request.getPath() == "/index.html") {
+    generate_index();
+    return;
+  }
   _body = read_file_binary(file_path);
 
   _headers.content_type = discover_content_type(file_path);
@@ -149,4 +165,30 @@ void HttpResponse::handle_GET() {
 
 std::string HttpResponse::getResponse() const {
   return toString();
+}
+
+void HttpResponse::generate_index() {
+    std::ifstream file("www/index.html");
+    if (!file.is_open()) {
+      throw HttpException(HttpStatusCode::NotFound);
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string html = buffer.str();
+
+    Cgi cgi("cgi-bin/getIndex.py");
+    std::string galeria = cgi.run(Request("GET / / HTTP/1.1\r\n\r\n")); // Puedes pasar un Request vacío o uno simulado
+
+    size_t pos = html.find("<!--GALERIA-->");
+    if (pos != std::string::npos)
+        html.replace(pos, std::string("<!--GALERIA-->").length(), galeria);
+
+    _body = html;
+
+    _headers.content_type = "text/html";
+    _headers.content_length = to_string(html.size());
+    _headers.connection = "keep-alive";
+
+    int code = HttpStatusCode::Accepted;
+    _status_line = ResponseStatus(code,statusCodeString(code) );
 }

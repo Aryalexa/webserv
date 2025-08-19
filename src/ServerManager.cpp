@@ -202,9 +202,7 @@ void ServerManager::_handle_read(int client_sock) {
     }
     logInfo("🐠 Request complete from client socket %d", client_sock);
     _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
-
-    _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
-    //FD_CLR(client_sock, &_read_fds); // only if client disconnects
+    _bytes_sent[client_sock] = 0;
     FD_SET(client_sock, &_write_fds);
 }
 
@@ -234,6 +232,7 @@ bool ServerManager::_request_complete(const std::string& request) {
     return body_size >= (size_t)content_length;
 }
 
+
 std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
     std::string response_str;
 
@@ -261,6 +260,7 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     return response_str;
 }
 
+    
 std::string ServerManager::prepare_error_response(int client_socket, int code, const Request &request) {
     logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
     std::string response_str;

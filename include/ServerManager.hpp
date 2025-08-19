@@ -43,7 +43,6 @@ class ServerManager {
         void _init_server_unit(ServerSetUp server);
         int _get_client_server_fd(int client_socket) const;
 
-
     public:
         ServerManager();
         ~ServerManager();

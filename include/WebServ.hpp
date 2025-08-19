@@ -51,6 +51,7 @@
 #include "HttpResponse.hpp"
 #include "Cgi.hpp"
 #include "ServerManager.hpp"
+#include "Cgi.hpp"
 
 
 # define SUCCESS    0
