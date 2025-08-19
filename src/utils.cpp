@@ -157,3 +157,19 @@ int     ft_stoi(std::string str)
 	ss >> res;
 	return (res);
 }
+
+bool in_str(const std::string &word, const std::string &str) {
+	return str.find(word) != std::string::npos;
+}
+
+std::string read_file_binary(const std::string &file_path) {
+	//logDebug("Reading file: %s", file_path.c_str());
+	std::ifstream file(file_path.c_str(), std::ios::binary);
+	if (!file) {
+		logError("No se pudo abrir el archivo.");
+		throw HttpException(HttpStatusCode::Forbidden);; // TODO: what? que error va aqui?
+	}
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	return buffer.str();
+}

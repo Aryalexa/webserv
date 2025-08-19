@@ -41,14 +41,15 @@
 # include <arpa/inet.h>
 
 #include "logging.hpp"
+#include "statusCode.hpp"
 #include "ServerSetUp.hpp"
 #include "LocationParser.hpp"
 #include "ConfigFile.hpp"
 #include "ReadConfig.hpp"
-#include "ServerManager.hpp"
 #include "utils.hpp"
 #include "Request.hpp"
 #include "HttpResponse.hpp"
+#include "ServerManager.hpp"
 
 
 # define SUCCESS    0
@@ -61,6 +62,5 @@
 
 # define DEFAULT_CONFIG_FILE "config/default.config"
 
-std::string statusCodeString(short);
 
 # endif

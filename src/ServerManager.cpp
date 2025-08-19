@@ -46,6 +46,29 @@ void ServerManager::setup(const std::vector<ServerSetUp>& configs) {
         );
     }
 }
+void ServerManager::_init_server_unit(ServerSetUp server) {
+    // listen
+    int fd = server.getFd();
+    if (listen(fd, BACKLOG_SIZE) < 0) {
+        logInfo("listen(%d) failed: %s", fd, strerror(errno));
+        exit(ERROR);
+    }
+    // Add to the read set
+    FD_SET(fd, &_read_fds);
+    // Update _max_fd
+    if (fd > _max_fd) _max_fd = fd;
+    logInfo("🐡 Server started on port %d", server.getPort());
+
+}
+
+int ServerManager::_get_client_server_fd(int client_socket) const {
+    std::map<int, int>::const_iterator it = _client_server_map.find(client_socket);
+    if (it == _client_server_map.end()) {
+        return -1;
+    }
+    return it->second;
+}
+
 
 void ServerManager::init()
 {
@@ -56,19 +79,7 @@ void ServerManager::init()
 	FD_ZERO(&_write_fds);
 
     for (size_t i = 0; i < _servers.size(); ++i) 
-    {
-        int fd = _servers[i].getFd();
-
-        if (listen(fd, BACKLOG_SIZE) < 0) {
-            logInfo("listen(%d) failed: %s", fd, strerror(errno));
-            exit(ERROR);
-        }
-
-        FD_SET(fd, &_read_fds);    // Add to the read set
-        if (fd > _max_fd) _max_fd = fd;  // Update _max_fd
-
-        logInfo("🐡 Server started on port %d", _servers[i].getPort());
-    }
+        _init_server_unit(_servers[i]); // Initialize each server unit
 
     fd_set temp_read_fds;
     fd_set temp_write_fds;
@@ -118,6 +129,7 @@ void ServerManager::_handle_new_connection(int listening_socket) {
     FD_SET(client_sock, &_read_fds);
     if (client_sock > _max_fd) _max_fd = client_sock;
 
+    _client_server_map[client_sock] = listening_socket; // Map client socket to server socket
     _read_buffer[client_sock] = ""; // Initialize read buffer for the new client
     _write_buffer[client_sock] = ""; // Initialize write buffer for the new client
     _bytes_sent[client_sock] = 0; // Initialize bytes sent for the new client
@@ -128,7 +140,6 @@ void ServerManager::_handle_write(int client_sock) {
 
     std::string remaining_response = _write_buffer[client_sock].substr(_bytes_sent[client_sock]);
     logInfo("🐠 Sending response to client socket %d", client_sock);
-    logDebug("🐠 Sending response: %s", remaining_response.c_str());
     size_t n = send(client_sock, remaining_response.c_str(), remaining_response.size(), 0);
 
     if (n <= 0) {
@@ -137,13 +148,29 @@ void ServerManager::_handle_write(int client_sock) {
         return;
     }
     _bytes_sent[client_sock] += n;
-    if (_bytes_sent[client_sock] == _write_buffer[client_sock].size())
-        _cleanup_client(client_sock);
+    if (_bytes_sent[client_sock] == _write_buffer[client_sock].size()) {
+       if (_should_close_connection(_read_buffer[client_sock], _write_buffer[client_sock])) {
+            _cleanup_client(client_sock);
+        } else {
+            // Mantener la conexión: limpiar buffers y volver a modo lectura
+            _read_buffer[client_sock].clear();
+            _write_buffer[client_sock].clear();
+            _bytes_sent[client_sock] = 0;
+            FD_CLR(client_sock, &_write_fds);
+            FD_SET(client_sock, &_read_fds);
+        }
+    }
+}
+bool ServerManager::_should_close_connection(const std::string& request, const std::string& response) {
+    // Check if the request or response contains "Connection: close"
+    bool closing = in_str(request, "Connection: close") ||
+                    in_str(response, "Connection: close");
+    if (closing) logError("🐠 Should close connection: %s", closing ? "Yes" : "No");
+    return closing;
 }
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
-    //HttpRequest request;
     std::string response;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
@@ -166,9 +193,7 @@ void ServerManager::_handle_read(int client_sock) {
     }
     // Request is complete, process it
     logInfo("🐠 Request complete from client socket %d", client_sock);
-    logDebug("🐠 Request: %s", _read_buffer[client_sock].c_str());
-    //request = parse_http_request(_read_buffer[client_sock]);
-    _write_buffer[client_sock] = prepare_response(_read_buffer[client_sock]);
+    _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
 
     _bytes_sent[client_sock] = 0; // Reset bytes sent for this client
     //FD_CLR(client_sock, &_read_fds); // only if client disconnects
@@ -181,64 +206,83 @@ bool ServerManager::_request_complete(const std::string& request) {
     return request.find("\r\n\r\n") != std::string::npos;
 }
 
-std::string ServerManager::prepare_response(const std::string& request) {
+std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
+    std::string response_str;
 
-    Request req(request);
-    std::cout << request << std::endl;
-    std::cout << req << std::endl;
-
-    std::cout << "Método: " << req.getMethod() << std::endl;
-    std::cout << "Path: " << req.getPath() << std::endl;
-    std::cout << "Request: " << req << std::endl;
-
-    std::string file_path;
-    if (req.getPath() == "/" || req.getPath().empty()) {
-        file_path = "www/index.html";
-    } else {
-        file_path = "www" + req.getPath();
+    Request request(request_str);
+    logDebug("preparing response. client socket: %i. query: %s %s",
+        client_socket,
+        request.getMethod().c_str(), 
+        request.getPath().c_str()
+    );
+    try {
+        HttpResponse response(request);
+        response_str = response.getResponse();
+    } catch (const HttpException &e) {
+        int code = e.getStatusCode();
+        std::cout << "Excepción capturada: " << e.what() << std::endl;
+        response_str = prepare_error_response(client_socket, code, request);
+        
+    } catch (const std::exception &e) {
+        // raise exc?
+        logError("Exception: %s", e.what());
+        //int code = HttpStatusCode::InternalServerError; // Default to 500 Internal Server
+        exit(1);
     }
 
-    std::ifstream file(file_path.c_str(), std::ios::binary);
-    if (!file.is_open()) {
-        // Manejar error: archivo no encontrado
-        return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
+    return response_str;
+}
+
+std::string ServerManager::prepare_error_response(int client_socket, int code, const Request &request) {
+    logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
+    std::string response_str;
+    // first: try error page in config
+    int server_fd = _get_client_server_fd(client_socket); // TODO: get server fd from client socket
+    if (server_fd == -1) {
+        logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
+        // Devuelve una respuesta de error de servidor genérica
+        HttpResponse response(request, HttpStatusCode::InternalServerError);
+        return response.getResponse();
     }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string body = buffer.str();
-
-    std::string content_type = "text/html";
-    if (file_path.find(".css") != std::string::npos) content_type = "text/css";
-    else if (file_path.find(".js") != std::string::npos) content_type = "application/javascript";
-    else if (file_path.find(".jpg") != std::string::npos || file_path.find(".jpeg") != std::string::npos) content_type = "image/jpeg";
-    else if (file_path.find(".png") != std::string::npos) content_type = "image/png";
-
-    std::string response = "HTTP/1.1 200 OK\r\n";
-    response += "Content-Type: " + content_type + "\r\n";
-    response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-    response += "\r\n";
-    response += body;
-
-
-
-    /*
-    - Find the correct resource or action
-    - Check HTTP method rules
-    - Apply redirections or aliases
-    - Locate the file or resource
-    - Consider CGI (dynamic content)
-    - Determine the response status
-    */
-    // generate a response
-    //response = HttpResponse(); // TODO: args
-    return response;
+    std::string err_page_path = _servers_map[server_fd].getPathErrorPage(code);
+    if (!err_page_path.empty()) {
+        logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
+        HttpResponse response(request, code, err_page_path);
+        response_str = response.getResponse();
+        return response_str;
+    }
+    logDebug("---prepare_error_response: error page for code %d not found in server config", code);
+    // if not found, treat web server error
+    std::string message = statusCodeString(code);
+    switch (code) {
+        case HttpStatusCode::NotFound: // show error page
+            {
+                logError("🍊 Acción: Mostrar página de error %d.", code);
+                HttpResponse response(request, code);
+                response_str = response.getResponse();
+            }
+            break;
+        case HttpStatusCode::InternalServerError:
+            logError("Error. %s. Acción: Revisar los registros del servidor.", message.c_str());
+            exit(2);
+            break;
+        case HttpStatusCode::BadRequest:
+            logError("Error. %s. Acción: Validar la solicitud del cliente.", message.c_str());
+            exit(2);
+            break;
+        default:
+            logError("Error no gestionado: %s. hacer algo!.", message.c_str());
+            exit(2);
+            break;
+    }
+    return response_str;
 }
 
 void ServerManager::_cleanup_client(int client_sock) {
     FD_CLR(client_sock, &_read_fds);
     FD_CLR(client_sock, &_write_fds);
     close(client_sock);
+    _client_server_map.erase(client_sock);
     _read_buffer.erase(client_sock);
     _write_buffer.erase(client_sock);
     _bytes_sent.erase(client_sock);

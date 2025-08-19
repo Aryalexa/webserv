@@ -18,6 +18,10 @@ std::vector<std::string>	split(const std::string& str, char c);
 void	                    ft_skip_spacenl(const char *str, int *i);
 int		                    ft_atoi(const char *str);
 bool                        compare_langs(const std::pair<std::string, float> first, const std::pair<std::string, float> second);
-int 		ft_stoi(std::string str);
+int 			ft_stoi(std::string str);
+bool 			in_str(const std::string &word, const std::string &str);
+std::string 	read_file_binary(const std::string &file_path);
+
+
 #endif // UTILS_HPP
 

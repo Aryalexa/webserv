@@ -1,112 +1,68 @@
 # include "../include/WebServ.hpp"
 
-std::string statusCodeString(short statusCode)
-{
-    switch (statusCode)
-    {
-        case 100:
-            return "Continue";
-        case 101:
-            return "Switching Protocol";
-        case 200:
-            return "OK";
-        case 201:
-            return "Created";
-        case 202:
-            return "Accepted";
-        case 203:
-            return "Non-Authoritative Information";
-        case 204:
-            return "No Content";
-        case 205:
-            return "Reset Content";
-        case 206:
-            return "Partial Content";
-        case 300:
-            return "Multiple Choice";
-        case 301:
-            return "Moved Permanently";
-        case 302:
-            return "Moved Temporarily";
-        case 303:
-            return "See Other";
-        case 304:
-            return "Not Modified";
-        case 307:
-            return "Temporary Redirect";
-        case 308:
-            return "Permanent Redirect";
-        case 400:
-            return "Bad Request";
-        case 401:
-            return "Unauthorized";
-        case 403:
-            return "Forbidden";
-        case 404:
-            return "Not Found";
-        case 405:
-            return "Method Not Allowed";
-        case 406:
-            return "Not Acceptable";
-        case 407:
-            return "Proxy Authentication Required";
-        case 408:
-            return "Request Timeout";
-        case 409:
-            return "Conflict";
-        case 410:
-            return "Gone";
-        case 411:
-            return "Length Required";
-        case 412:
-            return "Precondition Failed";
-        case 413:
-            return "Payload Too Large";
-        case 414:
-            return "URI Too Long";
-        case 415:
-            return "Unsupported Media Type";
-        case 416:
-            return "Requested Range Not Satisfiable";
-        case 417:
-            return "Expectation Failed";
-        case 418:
-            return "I'm a teapot";
-        case 421:
-            return "Misdirected Request";
-        case 425:
-            return "Too Early";
-        case 426:
-            return "Upgrade Required";
-        case 428:
-            return "Precondition Required";
-        case 429:
-            return "Too Many Requests";
-        case 431:
-            return "Request Header Fields Too Large";
-        case 451:
-            return "Unavailable for Legal Reasons";
-        case 500:
-            return "Internal Server Error";
-        case 501:
-            return "Not Implemented";
-        case 502:
-            return "Bad Gateway";
-        case 503:
-            return "Service Unavailable";
-        case 504:
-            return "Gateway Timeout";
-        case 505:
-            return "HTTP Version Not Supported";
-        case 506:
-            return "Variant Also Negotiates";
-        case 507:
-            return "Insufficient Storage";
-        case 510:
-            return "Not Extended";
-        case 511:
-            return "Network Authentication Required";
-        default:
-            return "Undefined";
-        }
+HttpException::HttpException(int code) : statusCode(code) {
+    message = to_string(statusCode) + " " + statusCodeString(code);
+}
+
+int HttpException::getStatusCode() const {
+    return statusCode;
+}
+
+
+// Función que devuelve el mensaje del código de estado HTTP
+std::string statusCodeString(int statusCode) {
+    switch (statusCode) {
+        case HttpStatusCode::Continue: return "Continue";
+        case HttpStatusCode::SwitchingProtocol: return "Switching Protocol";
+        case HttpStatusCode::OK: return "OK";
+        case HttpStatusCode::Created: return "Created";
+        case HttpStatusCode::Accepted: return "Accepted";
+        case HttpStatusCode::NonAuthoritativeInformation: return "Non-Authoritative Information";
+        case HttpStatusCode::NoContent: return "No Content";
+        case HttpStatusCode::ResetContent: return "Reset Content";
+        case HttpStatusCode::PartialContent: return "Partial Content";
+        case HttpStatusCode::MultipleChoice: return "Multiple Choice";
+        case HttpStatusCode::MovedPermanently: return "Moved Permanently";
+        case HttpStatusCode::MovedTemporarily: return "Moved Temporarily";
+        case HttpStatusCode::SeeOther: return "See Other";
+        case HttpStatusCode::NotModified: return "Not Modified";
+        case HttpStatusCode::TemporaryRedirect: return "Temporary Redirect";
+        case HttpStatusCode::PermanentRedirect: return "Permanent Redirect";
+        case HttpStatusCode::BadRequest: return "Bad Request";
+        case HttpStatusCode::Unauthorized: return "Unauthorized";
+        case HttpStatusCode::Forbidden: return "Forbidden";
+        case HttpStatusCode::NotFound: return "Not Found";
+        case HttpStatusCode::MethodNotAllowed: return "Method Not Allowed";
+        case HttpStatusCode::NotAcceptable: return "Not Acceptable";
+        case HttpStatusCode::ProxyAuthenticationRequired: return "Proxy Authentication Required";
+        case HttpStatusCode::RequestTimeout: return "Request Timeout";
+        case HttpStatusCode::Conflict: return "Conflict";
+        case HttpStatusCode::Gone: return "Gone";
+        case HttpStatusCode::LengthRequired: return "Length Required";
+        case HttpStatusCode::PreconditionFailed: return "Precondition Failed";
+        case HttpStatusCode::PayloadTooLarge: return "Payload Too Large";
+        case HttpStatusCode::URITooLong: return "URI Too Long";
+        case HttpStatusCode::UnsupportedMediaType: return "Unsupported Media Type";
+        case HttpStatusCode::RequestedRangeNotSatisfiable: return "Requested Range Not Satisfiable";
+        case HttpStatusCode::ExpectationFailed: return "Expectation Failed";
+        case HttpStatusCode::ImATeapot: return "I'm a teapot";
+        case HttpStatusCode::MisdirectedRequest: return "Misdirected Request";
+        case HttpStatusCode::TooEarly: return "Too Early";
+        case HttpStatusCode::UpgradeRequired: return "Upgrade Required";
+        case HttpStatusCode::PreconditionRequired: return "Precondition Required";
+        case HttpStatusCode::TooManyRequests: return "Too Many Requests";
+        case HttpStatusCode::RequestHeaderFieldsTooLarge: return "Request Header Fields Too Large";
+        case HttpStatusCode::UnavailableForLegalReasons: return "Unavailable for Legal Reasons";
+        case HttpStatusCode::InternalServerError: return "Internal Server Error";
+        case HttpStatusCode::NotImplemented: return "Not Implemented";
+        case HttpStatusCode::BadGateway: return "Bad Gateway";
+        case HttpStatusCode::ServiceUnavailable: return "Service Unavailable";
+        case HttpStatusCode::GatewayTimeout: return "Gateway Timeout";
+        case HttpStatusCode::HTTPVersionNotSupported: return "HTTP Version Not Supported";
+        case HttpStatusCode::VariantAlsoNegotiates: return "Variant Also Negotiates";
+        case HttpStatusCode::InsufficientStorage: return "Insufficient Storage";
+        case HttpStatusCode::NotExtended: return "Not Extended";
+        case HttpStatusCode::NetworkAuthenticationRequired: return "Network Authentication Required";
+        default: return "Undefined";
+    }
 }

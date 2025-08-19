@@ -16,13 +16,13 @@ SRC       = src/ConfigFile.cpp \
 			src/LocationParser.cpp \
 			src/logging.cpp \
 			src/ReadConfig.cpp \
-			src/ServerManager.cpp \
 			src/ServerSetUp.cpp \
 			src/main.cpp \
 			src/statusCode.cpp \
 			src/utils.cpp \
 			src/Request.cpp \
 			src/HttpResponse.cpp \
+			src/ServerManager.cpp \
 
 
 
