@@ -42,11 +42,11 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
 
   //añadido _headers.location.empty() porque si es una redireccion, el body esta vacio
   if ( (_body.empty() && _headers.location.empty()) || _headers.content_type.empty() || _headers.connection.empty()
+
   || _status_line.code == 0) {
     logError("bad");
     exit(2);
   }
- 
 }
 
 std::string get_default_error_page(int errorCode) {
@@ -86,6 +86,36 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
   _headers.connection = "keep-alive";
 
 }
+
+
+std::string get_default_error_page(int errorCode) {
+  std::string errorMessage = statusCodeString(errorCode);
+  
+  std::stringstream htmlResponse;
+  htmlResponse << "<!DOCTYPE html>"
+                << "<html lang=\"en\">"
+                << "<head>"
+                << "<meta charset=\"UTF-8\">"
+                << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                << "<title>Error - " << errorCode << "</title>"
+                << "<style>"
+                << "body { font-family: Arial, sans-serif; text-align: center; padding: 20px; color: #333; background-color: #f8f8f8; }"
+                << ".error { font-size: 48px; font-weight: bold; color: #e74c3c; }"
+                << ".message { font-size: 24px; color: #555; }"
+                << "</style>"
+                << "</head>"
+                << "<body>"
+                << "<div class=\"error\">" << errorCode << " - " << errorMessage << "</div>"
+                << "<div class=\"message\">"
+
+                // Puedes agregar un mensaje personalizado para cada error
+                << "We are sorry."
+                << "</div>"
+                << "</body>"
+                << "</html>";
+  return htmlResponse.str();
+}
+
 HttpResponse::HttpResponse(const Request &request, int errorCode, const std::string errorPagePath) : _request(request) {
   _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
   std::string valid_path = errorPagePath.substr(1, errorPagePath.size() - 1);

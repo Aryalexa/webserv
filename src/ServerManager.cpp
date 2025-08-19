@@ -210,7 +210,7 @@ bool ServerManager::_request_complete(const std::string& request) {
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos)
         return false; // Headers incompletos
-
+  
     size_t cl_pos = request.find("Content-Length:");
     if (cl_pos == std::string::npos)
         return true; // No hay body, solo headers
@@ -260,7 +260,6 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     return response_str;
 }
 
-    
 std::string ServerManager::prepare_error_response(int client_socket, int code, const Request &request) {
     logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
     std::string response_str;
