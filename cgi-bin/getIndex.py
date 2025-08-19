@@ -14,7 +14,7 @@ try:
                 <img src="file/{img}" alt="{img}" class="img-fluid">
                 <figcaption class="d-flex align-items-center justify-content-center">
                     <h2>{img}</h2>
-                    <a href="photo-detail.html">View more</a>
+                    <a href="photo-detail.html?img={img}">View more</a>
                 </figcaption>
             </figure>
         </div>

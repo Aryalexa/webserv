@@ -212,13 +212,25 @@ std::string ServerManager::prepare_response(const std::string& request) {
         std::cout << "[DEBUG] Body size: " << req.getBody().size() << std::endl;
         Cgi cgi("cgi-bin/saveFile.py");
         std::string cgi_output = cgi.run(req);
-        return generate_index();
+
+        // Redirección tras POST
+        std::string response = "HTTP/1.1 303 See Other\r\n";
+        response += "Location: /\r\n";
+        response += "Content-Length: 0\r\n";
+        response += "\r\n";
+        return response;
     }
     else if (req.getMethod() == "DELETE" ) {
         std::cout << "[DEBUG] path: " << req.getPath() << std::endl;
         Cgi cgi("cgi-bin/deleteFile.py");
         std::string cgi_output = cgi.run(req);
-        return generate_index();
+        
+        // Redirección tras POST
+        std::string response = "HTTP/1.1 303 See Other\r\n";
+        response += "Location: /\r\n";
+        response += "Content-Length: 0\r\n";
+        response += "\r\n";
+        return response;
     }
     else {
         if (req.getPath() == "/" || req.getPath() == "/index.html") {
