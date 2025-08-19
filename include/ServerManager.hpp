@@ -11,7 +11,7 @@ class ServerManager {
     private:
         std::vector<ServerSetUp>    _servers;
         std::map<int,ServerSetUp>   _servers_map;
-        //std::map<int, int>          _client_server_map; // Buffer for incoming requests
+        std::map<int, int>          _client_server_map; // Buffer for incoming requests
 
 
         static bool _running;
@@ -41,6 +41,7 @@ class ServerManager {
         void _cleanup_client(int client_sock);
         static void _handle_signal(int signal);
         void _init_server_unit(ServerSetUp server);
+        int _get_client_server_fd(int client_socket) const;
 
 
     public:

@@ -35,7 +35,7 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
  
 }
 
-std::string get_deafult_error_page(int errorCode) {
+std::string get_default_error_page(int errorCode) {
   std::string errorMessage = statusCodeString(errorCode);
   
   std::stringstream htmlResponse;
@@ -65,7 +65,7 @@ std::string get_deafult_error_page(int errorCode) {
 
 HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(request) {
   _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
-  _body = get_deafult_error_page(errorCode);
+  _body = get_default_error_page(errorCode);
 
   _headers.content_type = "text/html";
   _headers.content_length = to_string(_body.size());
