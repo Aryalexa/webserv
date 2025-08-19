@@ -14,6 +14,7 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
   _headers.content_type = "";
   _headers.content_length = "0";
   _headers.connection = "";
+  _headers.location = "";
 
   /*
     - Find the correct resource or action
@@ -30,16 +31,17 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
     std::cout << "[DEBUG] Body size: " << request.getBody().size() << std::endl;
     Cgi cgi("cgi-bin/saveFile.py");
     std::string cgi_output = cgi.run(request);
-    generate_index();
+    redirect();
   }
   else if (request.getMethod() == "DELETE" ) {
-      std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
-      Cgi cgi("cgi-bin/deleteFile.py");
-      std::string cgi_output = cgi.run(request);
-      generate_index();
+    std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
+    Cgi cgi("cgi-bin/deleteFile.py");
+    std::string cgi_output = cgi.run(request);
+    redirect();
   }
 
-  if ( _body.empty() || _headers.content_type.empty() || _headers.connection.empty()
+  //añadido _headers.location.empty() porque si es una redireccion, el body esta vacio
+  if ( (_body.empty() && _headers.location.empty()) || _headers.content_type.empty() || _headers.connection.empty()
   || _status_line.code == 0) {
     logError("bad");
     exit(2);
@@ -101,9 +103,13 @@ std::string HttpResponse::getStatusLine() const {
   return version + " " + to_string(_status_line.code) + " " + _status_line.message;
 }
 std::string HttpResponse::getHeaders() const {
-  return "Content-Type: " + _headers.content_type + "\r\n" +
-       "Content-Length: " + _headers.content_length + "\r\n" +
-       "Connection: " + _headers.connection + "\r\n";
+    std::string headers =
+        "Content-Type: " + _headers.content_type + "\r\n" +
+        "Content-Length: " + _headers.content_length + "\r\n" +
+        "Connection: " + _headers.connection + "\r\n";
+    if (!_headers.location.empty())
+        headers += "Location: " + _headers.location + "\r\n";
+    return headers;
 }
 std::string HttpResponse::getBody() const {
   return _body;
@@ -191,4 +197,15 @@ void HttpResponse::generate_index() {
 
     int code = HttpStatusCode::Accepted;
     _status_line = ResponseStatus(code,statusCodeString(code) );
+}
+
+void HttpResponse::redirect() {
+    int code = 303;
+    _status_line = ResponseStatus(code, "See Other");
+    _headers.content_type = "text/html";
+    _headers.content_length = "0";
+    _headers.connection = "keep-alive";
+    _headers.location = "/"; // Debes agregar este campo en tu struct de headers
+
+    _body = ""; // Sin cuerpo
 }
