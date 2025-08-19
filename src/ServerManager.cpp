@@ -61,6 +61,15 @@ void ServerManager::_init_server_unit(ServerSetUp server) {
 
 }
 
+int ServerManager::_get_client_server_fd(int client_socket) const {
+    std::map<int, int>::const_iterator it = _client_server_map.find(client_socket);
+    if (it == _client_server_map.end()) {
+        return -1;
+    }
+    return it->second;
+}
+
+
 void ServerManager::init()
 {
     _running = true;
@@ -120,7 +129,7 @@ void ServerManager::_handle_new_connection(int listening_socket) {
     FD_SET(client_sock, &_read_fds);
     if (client_sock > _max_fd) _max_fd = client_sock;
 
-    //_client_server_map[client_sock] = listening_socket; // Map client socket to server socket
+    _client_server_map[client_sock] = listening_socket; // Map client socket to server socket
     _read_buffer[client_sock] = ""; // Initialize read buffer for the new client
     _write_buffer[client_sock] = ""; // Initialize write buffer for the new client
     _bytes_sent[client_sock] = 0; // Initialize bytes sent for the new client
@@ -256,14 +265,13 @@ std::string ServerManager::prepare_error_response(int client_socket, int code, c
     logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
     std::string response_str;
     // first: try error page in config
-    // if (_client_server_map.find(client_socket) == _client_server_map.end()) {
-    //     logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
-    //     // Devuelve una respuesta de error genérica
-    //     HttpResponse response(request, HttpStatusCode::InternalServerError);
-    //     return response.getResponse();
-    // }
-    // int server_fd = _client_server_map[client_socket];
-    int server_fd = -1; // TODO: get server fd from client socket
+    int server_fd = _get_client_server_fd(client_socket); // TODO: get server fd from client socket
+    if (server_fd == -1) {
+        logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
+        // Devuelve una respuesta de error de servidor genérica
+        HttpResponse response(request, HttpStatusCode::InternalServerError);
+        return response.getResponse();
+    }
     std::string err_page_path = _servers_map[server_fd].getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
@@ -302,7 +310,7 @@ void ServerManager::_cleanup_client(int client_sock) {
     FD_CLR(client_sock, &_read_fds);
     FD_CLR(client_sock, &_write_fds);
     close(client_sock);
-    //_client_server_map.erase(client_sock);
+    _client_server_map.erase(client_sock);
     _read_buffer.erase(client_sock);
     _write_buffer.erase(client_sock);
     _bytes_sent.erase(client_sock);
