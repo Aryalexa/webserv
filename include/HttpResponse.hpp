@@ -15,6 +15,7 @@ struct ResponseHeaders {
 	std::string content_type;
 	std::string content_length;
 	std::string connection;
+	std::string location;
 };
 
 
@@ -45,6 +46,8 @@ public:
 	std::string getBody() const ;
 	std::string toString() const ;
 	std::string getResponse() const;
+	void generate_index();
+	void redirect();
 
 	void handle_GET();
 
