@@ -21,6 +21,7 @@ bool                        compare_langs(const std::pair<std::string, float> fi
 int 			ft_stoi(std::string str);
 bool 			in_str(const std::string &word, const std::string &str);
 std::string 	read_file_binary(const std::string &file_path);
+std::string replace_all(const std::string& str, const std::string& from, const std::string& to);
 
 
 #endif // UTILS_HPP

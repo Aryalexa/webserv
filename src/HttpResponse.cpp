@@ -123,14 +123,14 @@ std::string HttpResponse::toString() const {
 
 std::string validate_path(const std::string &path) {
   std::string valid_path;
-  if (path == "/" || path.empty()) {
+  std::string clean_path = replace_all(path, "%20", " ");
+  if (clean_path == "/" || clean_path.empty()) {
     valid_path = "www/index.html";
   } else {
-    valid_path = "www" + path;
+    valid_path = "www" + clean_path;
   }
   std::ifstream file(valid_path.c_str());
   if (!file.is_open()) {
-    // TODO: Manejar error: archivo no encontrado
     logError("File not found: %s", valid_path.c_str());
     throw HttpException(HttpStatusCode::NotFound);
   }
