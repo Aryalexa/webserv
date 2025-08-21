@@ -155,6 +155,32 @@ std::string discover_content_type(const std::string &filename) {
 void HttpResponse::handle_GET() {
 
   std::string file_path = validate_path(_request.getPath());
+  if (_request.getPath() == "/photo-detail.html") {
+    std::ifstream file("www/photo-detail.html");
+    if (!file.is_open()) {
+      logError("File not found: %s", "www/photo-detail.html");
+      return;
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string html = buffer.str();
+
+    Cgi cgi("cgi-bin/getFile.py");
+    std::string photo_block = cgi.run(_request);
+
+    size_t pos = html.find("<!--PHOTO_DETAIL-->");
+    if (pos != std::string::npos)
+        html.replace(pos, std::string("<!--PHOTO_DETAIL-->").length(), photo_block);
+    
+    _body = html;
+    _headers.content_type = "text/html";
+    _headers.content_length = to_string(_body.size());
+    _headers.connection = "keep-alive";
+
+    int code = HttpStatusCode::Accepted;
+    _status_line = ResponseStatus(code,statusCodeString(code) );
+    return;
+  }
   if(_request.getPath() == "/" || _request.getPath() == "/index.html") {
     generate_index();
     return;
