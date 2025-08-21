@@ -32,11 +32,23 @@ void Cgi::setEnvVariables(const Request& req) {
     _envVariables["SERVER_PROTOCOL"] = req.getVersion();
 }
 
+/**
+ * Executes the CGI script with the given request.
+ * Returns the output of the script.
+ * 
+ * CGI:
+ * - los datos relevantes (método, query string, content length, etc.) se pasan por variables de entorno
+ * - el body (si existe) por la entrada estándar (stdin).
+ * 
+ * Se usa:
+ * - stdin para enviar el body de la petición 
+ * - stdout para recibir la salida del script.
+ */
 std::string Cgi::executeCgi(const Request& req) {
-    int stdin_pipe[2];
-    int stdout_pipe[2];
     std::string output;
 
+    int stdin_pipe[2]; // Pipe for stdin
+    int stdout_pipe[2]; // Pipe for stdout
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1) {
         throw std::runtime_error("Failed to create pipes");
     }
@@ -48,7 +60,7 @@ std::string Cgi::executeCgi(const Request& req) {
         throw std::runtime_error("Fork failed");
     }
 
-    if (pid == 0) {
+    if (pid == 0) { // Child process
         dup2(stdin_pipe[0], STDIN_FILENO);
         dup2(stdout_pipe[1], STDOUT_FILENO);
 
