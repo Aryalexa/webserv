@@ -45,7 +45,7 @@
 
     <div class="container-fluid tm-container-content tm-mt-60">
         <div class="col-12 d-flex align-items-center mb-4">
-            <form action="/upload" method="post" enctype="multipart/form-data" class="d-flex w-100">
+            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="d-flex w-100">
             <input type="file" name="file" class="form-control mr-2" required>
             <button type="submit" class="btn btn-primary ml-2">Enviar</button>
             </form>
@@ -86,9 +86,23 @@
     
     <script src="js/plugins.js"></script>
     <script>
+        // Loader
         $(window).on("load", function() {
             $('body').addClass('loaded');
         });
+
+        // Upload form con fetch y redirección
+        document.getElementById('uploadForm').onsubmit = function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) window.location.href = '/';
+                else alert('Error al subir el archivo');
+            });
+        };
     </script>
 </body>
 </html>

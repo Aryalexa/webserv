@@ -46,8 +46,10 @@ public:
 	std::string getBody() const ;
 	std::string toString() const ;
 	std::string getResponse() const;
-	void generate_index();
+	void generate_index(const Request& request);
 	void redirect();
+	void isOk();
+	void createOk();
 
 	void handle_GET();
 

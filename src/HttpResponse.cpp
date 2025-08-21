@@ -31,17 +31,18 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
     std::cout << "[DEBUG] Body size: " << request.getBody().size() << std::endl;
     Cgi cgi("cgi-bin/saveFile.py");
     std::string cgi_output = cgi.run(request);
-    redirect();
+    createOk();
   }
   else if (request.getMethod() == "DELETE" ) {
     std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
     Cgi cgi("cgi-bin/deleteFile.py");
     std::string cgi_output = cgi.run(request);
-    redirect();
+    isOk();
   }
 
-  //añadido _headers.location.empty() porque si es una redireccion, el body esta vacio
-  if ( (_body.empty() && _headers.location.empty()) || _headers.content_type.empty() || _headers.connection.empty()
+  //añadido _headers.location.empty() porque si es una redireccion , el body esta vacio 
+  //(_body.empty() && _headers.location.empty()) quito ambos porque delete no tiene ni location ni body
+  if (_headers.content_type.empty() || _headers.connection.empty()
   || _status_line.code == 0) {
     logError("bad");
     exit(2);
@@ -82,10 +83,10 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
 
   _headers.content_type = "text/html";
   _headers.content_length = to_string(_body.size());
-  _headers.connection = "keep-alive";
+  // a ser pagina de error, cerrar conexion
+  _headers.connection = "close";
 
 }
-
 
 HttpResponse::HttpResponse(const Request &request, int errorCode, const std::string errorPagePath) : _request(request) {
   _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
@@ -96,7 +97,6 @@ HttpResponse::HttpResponse(const Request &request, int errorCode, const std::str
   _headers.content_length = to_string(_body.size());
   _headers.connection = "keep-alive";
 }
-
 
 HttpResponse::~HttpResponse() {}
 
@@ -158,8 +158,7 @@ void HttpResponse::handle_GET() {
   if (_request.getPath() == "/photo-detail.html") {
     std::ifstream file("www/photo-detail.html");
     if (!file.is_open()) {
-      logError("File not found: %s", "www/photo-detail.html");
-      return;
+      throw HttpException(HttpStatusCode::NotFound);
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
@@ -177,12 +176,12 @@ void HttpResponse::handle_GET() {
     _headers.content_length = to_string(_body.size());
     _headers.connection = "keep-alive";
 
-    int code = HttpStatusCode::Accepted;
+    int code = HttpStatusCode::OK;
     _status_line = ResponseStatus(code,statusCodeString(code) );
     return;
   }
   if(_request.getPath() == "/" || _request.getPath() == "/index.html") {
-    generate_index();
+    generate_index(_request);
     return;
   }
   _body = read_file_binary(file_path);
@@ -191,7 +190,7 @@ void HttpResponse::handle_GET() {
   _headers.content_length = to_string(_body.size());
   _headers.connection = "keep-alive";
 
-  int code = HttpStatusCode::Accepted;
+  int code = HttpStatusCode::OK;
   _status_line = ResponseStatus(code,statusCodeString(code) );
   
 }
@@ -200,7 +199,7 @@ std::string HttpResponse::getResponse() const {
   return toString();
 }
 
-void HttpResponse::generate_index() {
+void HttpResponse::generate_index(const Request& request) {
     std::ifstream file("www/index.html");
     if (!file.is_open()) {
       throw HttpException(HttpStatusCode::NotFound);
@@ -210,7 +209,7 @@ void HttpResponse::generate_index() {
     std::string html = buffer.str();
 
     Cgi cgi("cgi-bin/getIndex.py");
-    std::string galeria = cgi.run(Request("GET / / HTTP/1.1\r\n\r\n")); // Puedes pasar un Request vacío o uno simulado
+    std::string galeria = cgi.run(request); // Puedes pasar un Request vacío o uno simulado
 
     size_t pos = html.find("<!--GALERIA-->");
     if (pos != std::string::npos)
@@ -222,17 +221,36 @@ void HttpResponse::generate_index() {
     _headers.content_length = to_string(html.size());
     _headers.connection = "keep-alive";
 
-    int code = HttpStatusCode::Accepted;
+    int code = HttpStatusCode::OK;
     _status_line = ResponseStatus(code,statusCodeString(code) );
 }
 
 void HttpResponse::redirect() {
-    int code = 303;
-    _status_line = ResponseStatus(code, "See Other");
+    int code = HttpStatusCode::SeeOther;
+    _status_line = ResponseStatus(code, statusCodeString(code));
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
     _headers.location = "/"; // Debes agregar este campo en tu struct de headers
+
+    _body = ""; // Sin cuerpo
+}
+
+void HttpResponse::createOk() {
+    int code = HttpStatusCode::Created;
+    _status_line = ResponseStatus(code, statusCodeString(code));
+    _headers.content_type = "text/html";
+    _headers.content_length = "0";
+    _headers.connection = "keep-alive";
+    _body = ""; // Sin cuerpo
+}
+
+void HttpResponse::isOk() {
+    int code = HttpStatusCode::OK;
+    _status_line = ResponseStatus(code, statusCodeString(code));
+    _headers.content_type = "text/html";
+    _headers.content_length = "0";
+    _headers.connection = "keep-alive";
 
     _body = ""; // Sin cuerpo
 }
