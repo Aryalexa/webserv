@@ -28,9 +28,9 @@ def delete_file(filename):
 def parse_form_data():
     """Parse form data from query string or POST data"""
     query_string = os.environ.get('QUERY_STRING', '')
-    request_method = os.environ.get('REQUEST_METHOD', 'GET')
+    request_method = os.environ.get('REQUEST_METHOD', 'DELETE')
     
-    if request_method == 'GET' and query_string:
+    if request_method == 'DELETE' and query_string:
         # Parse query string
         parsed_data = parse_qs(query_string)
         return {key: values[0] for key, values in parsed_data.items() if values}
@@ -46,8 +46,8 @@ def parse_form_data():
 if __name__ == "__main__":
     # Get filename from form data
     form_data = parse_form_data()
-    filename = form_data.get("filename", "")
-    
+    filename = form_data.get("img", "")
+
     if filename:
         delete_file(filename)
     else:

@@ -40,6 +40,7 @@ Request&	Request::operator=(const Request& obj)
 	this->_body = obj.getBody();
 	this->_port = obj.getPort();
 	this->_path = obj.getPath();
+	this->_query = obj.getQuery();
 
 	return *this;
 }
@@ -128,7 +129,6 @@ void				Request::resetHeaders()
 	this->_headers["Accept-Charsets"] = ""; //ya no se usa, esta obsoleto
 	this->_headers["Accept-Language"] = ""; // es, en, ... Client
 	this->_headers["Allow"] = ""; // "GET, POST, PUT, DELETE, OPTIONS, HEAD, TRACE"
-	// this->_headers["Auth-Scheme"] = "";
 	this->_headers["Authorization"] = "";
 	this->_headers["Content-Language"] = ""; //es, en, ... Server
 	this->_headers["Content-Length"] = ""; //longitud del cuerpo de la peticion
@@ -166,6 +166,7 @@ int					Request::parse(const std::string& str)
 	this->setLang();
 	this->setBody(str.substr(i, std::string::npos));
 	this->checkPort();
+	this->findQuery();
 	return this->_ret;
 }
 
@@ -308,6 +309,17 @@ int					Request::checkPort()
 	return (this->_port);
 }
 
+void				Request::findQuery()
+{
+	size_t		i;
+
+	i = this->_path.find_first_of('?');
+	if (i != std::string::npos)
+	{
+		this->_query.assign(this->_path, i + 1, std::string::npos);
+		this->_path = this->_path.substr(0, i);
+	}
+}
 
 std::ostream&		operator<<(std::ostream& os, const Request& re)
 {

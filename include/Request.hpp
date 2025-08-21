@@ -57,6 +57,7 @@ class Request
 		int		parse(const std::string& str);
 		void	resetHeaders();
 		void	stripAll();
+		void	findQuery();
 
 		static std::vector<std::string>		init_methods();
 
