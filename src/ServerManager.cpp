@@ -163,9 +163,15 @@ void ServerManager::_handle_write(int client_sock) {
 }
 bool ServerManager::_should_close_connection(const std::string& request, const std::string& response) {
     // Check if the request or response contains "Connection: close"
-    bool closing = in_str(request, "Connection: close") ||
-                    in_str(response, "Connection: close");
-    if (closing) logError("🐠 Should close connection: %s", closing ? "Yes" : "No");
+    bool closing = false;
+    if (in_str(request, "Connection: close")){
+        logError("🐠 Should close connection. From request");
+        closing = true;
+    } 
+    if (in_str(response, "Connection: close")) {
+        logError("🐠 Should close connection. From response");
+        closing = true;
+    }
     return closing;
 }
 void ServerManager::_handle_read(int client_sock) {

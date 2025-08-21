@@ -28,7 +28,7 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
   if (request.getMethod() == "GET") 
     handle_GET();
   else if (request.getMethod() == "POST" && request.getPath() == "/upload") {
-    std::cout << "[DEBUG] Body size: " << request.getBody().size() << std::endl;
+    logDebug("[DEBUG] Body size: %i", request.getBody().size());
     Cgi cgi("cgi-bin/saveFile.py");
     std::string cgi_output = cgi.run(request);
     createOk();
