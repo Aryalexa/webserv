@@ -122,6 +122,11 @@ void	Request::setMethod(const std::string &method)
 	this->_method = method;
 }
 
+void	Request::setPath(const std::string &new_path)
+{
+	this->_path = new_path;
+}
+
 void				Request::resetHeaders()
 {
 	this->_headers.clear();

@@ -238,11 +238,43 @@ bool ServerManager::_request_complete(const std::string& request) {
     return body_size >= (size_t)content_length;
 }
 
+/**
+ * Resolve the request path based on server configuration.
+ * index, root, alias, etc.
+ */
+void ServerManager::resolve_path(Request &request, int client_socket) {
+    int server_fd = _get_client_server_fd(client_socket);
+    if (server_fd == -1) {
+        logError("resolve_path: client_socket %d not found in _client_server_map!", client_socket);
+        throw HttpException(HttpStatusCode::InternalServerError);
+    }
+    ServerSetUp &server = _servers_map[server_fd];
+    (void)server;
+    std::string path = request.getPath();
+    // clean path - spaces and symbols
+    std::string clean_path = replace_all(path, "%20", " ");
+    // path normalization
+    // TODO: all the below list
+    // check locations
+    // apply root and alias
+    // apply indexation (if ON)
+    // check if file exists <- NO, esto depende del method
+    
+    std::string valid_path;
+    if (clean_path == "/" || clean_path.empty()) {
+        valid_path = "www/index.html";
+    } else {
+        valid_path = "www" + clean_path;
+    }
+    request.setPath(valid_path);
+    //request.setPath(_servers_map[server_fd].getRoot() + path);
+}
 
 std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
     std::string response_str;
 
     Request request(request_str);
+    resolve_path(request, client_socket);
     logDebug("preparing response. client socket: %i. query: %s %s",
         client_socket,
         request.getMethod().c_str(), 
