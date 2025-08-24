@@ -3,6 +3,7 @@
 import os
 
 IMG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../www/file"))
+os.makedirs(IMG_DIR, exist_ok=True)
 
 try:
     files = sorted(os.listdir(IMG_DIR))
