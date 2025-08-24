@@ -239,6 +239,37 @@ bool ServerManager::_request_complete(const std::string& request) {
 }
 
 /**
+ * Normalize the path by resolving ., .. and redundant slashes.
+ * To prevent directory traversal attacks.
+ */
+std::string path_normalization(const std::string& path) {
+    std::string normalized = path;
+    // Replace multiple slashes with a single slash
+    size_t pos;
+    while ((pos = normalized.find("//")) != std::string::npos) {
+        normalized.replace(pos, 2, "/");
+    }
+    // Remove occurrences of "/./"
+    while ((pos = normalized.find("/./")) != std::string::npos) {
+        normalized.replace(pos, 3, "/");
+    }
+    // Handle "/../" by removing the preceding directory
+    while ((pos = normalized.find("/../")) != std::string::npos) {
+        if (pos == 0) {
+            normalized.erase(0, 3); // Remove leading "/.."
+        } else {
+            size_t prev_slash = normalized.rfind('/', pos - 1);
+            if (prev_slash == std::string::npos) {
+                normalized.erase(0, pos + 4); // Remove everything before "/../"
+            } else {
+                normalized.erase(prev_slash, pos + 3 - prev_slash);
+            }
+        }
+    }
+    return normalized;
+}
+
+/**
  * Resolve the request path based on server configuration.
  * index, root, alias, etc.
  */
@@ -254,7 +285,8 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     // clean path - spaces and symbols
     std::string clean_path = replace_all(path, "%20", " ");
     // path normalization
-    // TODO: all the below list
+    clean_path = path_normalization(clean_path);
+    // TODO: all the below list (decide general order)
     // check locations
     // apply root and alias
     // apply indexation (if ON)
