@@ -27,7 +27,7 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
 
   if (request.getMethod() == "GET") 
     handle_GET();
-  else if (request.getMethod() == "POST" && request.getPath() == "/upload") {
+  else if (request.getMethod() == "POST" && request.getPath() == "www/upload") {
     logDebug("[DEBUG] Body size: %i", request.getBody().size());
     Cgi cgi("cgi-bin/saveFile.py");
     std::string cgi_output = cgi.run(request);
@@ -121,20 +121,16 @@ std::string HttpResponse::toString() const {
        getBody();
 }
 
+/**
+ * checks if the file exists, otherwise throw 404
+ */
 std::string validate_path(const std::string &path) {
-  std::string valid_path;
-  std::string clean_path = replace_all(path, "%20", " ");
-  if (clean_path == "/" || clean_path.empty()) {
-    valid_path = "www/index.html";
-  } else {
-    valid_path = "www" + clean_path;
-  }
-  std::ifstream file(valid_path.c_str());
+  std::ifstream file(path.c_str());
   if (!file.is_open()) {
-    logError("File not found: %s", valid_path.c_str());
+    logError("File not found: %s", path.c_str());
     throw HttpException(HttpStatusCode::NotFound);
   }
-  return valid_path;
+  return path;
 }
 std::string discover_content_type(const std::string &filename) {
   std::string content_type;
@@ -153,24 +149,14 @@ std::string discover_content_type(const std::string &filename) {
   return content_type;
 }
 void HttpResponse::handle_GET() {
-
   std::string file_path = validate_path(_request.getPath());
-  if (_request.getPath() == "/photo-detail.html") {
-    std::ifstream file("www/photo-detail.html");
-    if (!file.is_open()) {
-      throw HttpException(HttpStatusCode::NotFound);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string html = buffer.str();
+  if (file_path == "www/photo-detail.html") {
+    std::string html = read_file_text("www/photo-detail.html");
 
     Cgi cgi("cgi-bin/getFile.py");
     std::string photo_block = cgi.run(_request);
+    html = replace_all(html, "<!--PHOTO_DETAIL-->", photo_block);
 
-    size_t pos = html.find("<!--PHOTO_DETAIL-->");
-    if (pos != std::string::npos)
-        html.replace(pos, std::string("<!--PHOTO_DETAIL-->").length(), photo_block);
-    
     _body = html;
     _headers.content_type = "text/html";
     _headers.content_length = to_string(_body.size());
@@ -180,10 +166,11 @@ void HttpResponse::handle_GET() {
     _status_line = ResponseStatus(code,statusCodeString(code) );
     return;
   }
-  if(_request.getPath() == "/" || _request.getPath() == "/index.html") {
+  if(file_path == "www/index.html") {
     generate_index(_request);
     return;
   }
+  // else
   _body = read_file_binary(file_path);
 
   _headers.content_type = discover_content_type(file_path);
