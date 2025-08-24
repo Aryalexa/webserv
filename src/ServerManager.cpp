@@ -189,7 +189,7 @@ void ServerManager::_handle_read(int client_sock) {
             _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
         } else {
             logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
-            _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<h1>400 Bad Request</h1>";
+            _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>400 Bad Request</h1>";
         }
         _bytes_sent[client_sock] = 0;
         FD_SET(client_sock, &_write_fds);

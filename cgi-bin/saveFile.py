@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/python3.11
+#!/usr/bin/env python3
 import os
 import sys
 from urllib.parse import parse_qs
@@ -7,8 +7,6 @@ from email import policy
 import io
 from email.parser import BytesParser
 
-print("En saveFileEdu.py")
-print("Content-Type: text/html\n")
 
 def parse_multipart_form_data():
     """Parse multipart form data from stdin"""
