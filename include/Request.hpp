@@ -52,6 +52,7 @@ class Request
 		void	setBody(const std::string& line);
 		void	setRet(int);
 		void	setMethod(const std::string &method);
+		void	setPath(const std::string &new_path);
 
 		/*** UTILS ****/
 		int		parse(const std::string& str);

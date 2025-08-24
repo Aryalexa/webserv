@@ -161,10 +161,25 @@ int     ft_stoi(std::string str)
 bool in_str(const std::string &word, const std::string &str) {
 	return str.find(word) != std::string::npos;
 }
-
+/**
+ * This works for any kind of file: text, binary, images, pdfs, etc.
+ */
 std::string read_file_binary(const std::string &file_path) {
-	//logDebug("Reading file: %s", file_path.c_str());
 	std::ifstream file(file_path.c_str(), std::ios::binary);
+	if (!file) {
+		logError("No se pudo abrir el archivo.");
+		throw HttpException(HttpStatusCode::Forbidden);; // TODO: what? que error va aqui?
+	}
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	return buffer.str();
+}
+
+/**
+ * This works only for text files.
+ */
+std::string read_file_text(const std::string &file_path) {
+	std::ifstream file(file_path.c_str());
 	if (!file) {
 		logError("No se pudo abrir el archivo.");
 		throw HttpException(HttpStatusCode::Forbidden);; // TODO: what? que error va aqui?
@@ -182,4 +197,11 @@ std::string replace_all(const std::string& str, const std::string& from, const s
         start_pos += to.length();
     }
     return result;
+}
+
+std::string starts_with(const std::string& str, const std::string& prefix) {
+	if (str.length() < prefix.length()) {
+		return "";
+	}
+	return str.substr(0, prefix.length()) == prefix ? prefix : "";
 }
