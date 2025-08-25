@@ -43,7 +43,7 @@
 #include "logging.hpp"
 #include "statusCode.hpp"
 #include "ServerSetUp.hpp"
-#include "LocationParser.hpp"
+#include "Location.hpp"
 #include "ConfigFile.hpp"
 #include "ReadConfig.hpp"
 #include "utils.hpp"

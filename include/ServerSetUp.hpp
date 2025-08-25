@@ -50,7 +50,7 @@
 #define CGI_BIN_PATH "/cgi-bin"
 #define CMBS "client_max_body_size"
 
-class LocationParser;
+class Location;
 
 class ServerSetUp
 {
@@ -63,7 +63,7 @@ class ServerSetUp
 		std::string						_index;
 		bool							_autoindex;
 		std::map<short, std::string>	_error_list;
-		std::vector<LocationParser> 	_locations;
+		std::vector<Location> 			_locations;
 		int     						_listen_fd;
 		struct sockaddr_in 				_server_address;
 
@@ -85,20 +85,20 @@ class ServerSetUp
 
 		bool                                    		isValidHost(std::string host) const;
 		bool                                    		isValidErrorPages();
-		int                                     		isValidLocation(LocationParser &location) const;
+		int                                     		isValidLocation(Location &location) const;
 
 		const std::string                       		&getServerName();
 		const uint16_t  								&getPort() const;
 		const in_addr_t									&getHost() const;
 		const size_t                            		&getClientMaxBodySize(); 
 		const std::string                       		&getRoot(); 
-		const std::vector<LocationParser>       		&getLocations();
+		const std::vector<Location>       				&getLocations();
 		const std::map<short, std::string>      		&getErrorPages();
 		const std::string                       		&getIndexFiles();
 		const std::string								&getIndex();
 		const bool                              		&getAutoindex(); 
 		const std::string                       		&getPathErrorPage(short key); 
-		const std::vector<LocationParser>::iterator		getLocationKey(std::string key);
+		const std::vector<Location>::iterator			getLocationKey(std::string key);
 
 		int               								getFd() const;
 		void                                    		setFd(int);

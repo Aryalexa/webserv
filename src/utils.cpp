@@ -167,7 +167,7 @@ bool in_str(const std::string &word, const std::string &str) {
 std::string read_file_binary(const std::string &file_path) {
 	std::ifstream file(file_path.c_str(), std::ios::binary);
 	if (!file) {
-		logError("No se pudo abrir el archivo.");
+		logError("No se pudo abrir el archivo %s.", file_path.c_str());
 		throw HttpException(HttpStatusCode::Forbidden);; // TODO: what? que error va aqui?
 	}
 	std::stringstream buffer;
@@ -181,7 +181,7 @@ std::string read_file_binary(const std::string &file_path) {
 std::string read_file_text(const std::string &file_path) {
 	std::ifstream file(file_path.c_str());
 	if (!file) {
-		logError("No se pudo abrir el archivo.");
+		logError("No se pudo abrir el archivo %s.", file_path.c_str());
 		throw HttpException(HttpStatusCode::Forbidden);; // TODO: what? que error va aqui?
 	}
 	std::stringstream buffer;

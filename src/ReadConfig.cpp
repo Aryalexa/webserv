@@ -12,9 +12,9 @@ int ReadConfig::createServerGroup(const std::string &config_file)
 	std::string		content;
 	ConfigFile		file(config_file);
 
-	if (file.getTypePath(file.getPath()) != 1)
+	if (file.getTypePath(file.getPath()) != F_REGULAR_FILE)
 		throw ErrorException(INVALID_FILE_ERR);
-	if (file.checkFile(file.getPath(), 4) == -1)
+	if (!file.checkFile(file.getPath(), 4))
 		throw ErrorException(ACCESS_FILE_ERR);
 	content = file.readFile(config_file);
 	if (content.empty())
@@ -240,8 +240,8 @@ void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 		server.setHost("localhost;");
 	if (server.getIndex().empty())
 		server.setIndex("index.html;");
-	if (ConfigFile::isFileExistAndReadable(server.getRoot(), server.getIndex()))
-		throw ErrorException(INDEX_CONFIG_ERR);
+	if (!ConfigFile::isFileExistAndReadable(server.getRoot(), server.getIndex()))
+		throw ErrorException(INDEX_CONFIG_ERR);	
 	if (server.checkLocations())
 		throw ErrorException(LOCATION_DUP_ERR);
 	if (!server.getPort())
@@ -249,6 +249,7 @@ void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 	server.setErrorPages(error_codes);
 	if (!server.isValidErrorPages())
 		throw ErrorException(ERROR_PAGE_ERR);
+	logDebug("🍊 Servidor creado en %s:%d con root %s", inet_ntoa(*(in_addr*)&server.getHost()), server.getPort(), server.getRoot().c_str());
 }
 
 void ReadConfig::checkServers()

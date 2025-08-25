@@ -18,22 +18,22 @@ int ConfigFile::getTypePath(std::string const path)
 	if (result == 0)
 	{
 		if (buffer.st_mode & S_IFREG)
-			return (1);
+			return (F_REGULAR_FILE);
 		else if (buffer.st_mode & S_IFDIR)
-			return (2);
+			return (F_DIRECTORY);
 		else
-			return (3);
+			return (F_OTHER);
 	}
 	else
-		return (-1);
+		return (F_NOT_EXIST);
 }
 
 /**
  * Comprueba permisos con `access()`
  */
-int	ConfigFile::checkFile(std::string const path, int mode)
+bool	ConfigFile::checkFile(std::string const path, int mode)
 {
-	return (access(path.c_str(), mode));
+	return (access(path.c_str(), mode) == 0);
 }
 
 /**
@@ -44,13 +44,15 @@ int	ConfigFile::checkFile(std::string const path, int mode)
  * Si `index` es un archivo dentro de `path`, comprueba si existe y es legible.
  * Devuelve `0` si es legible, `-1` si no
  */
-int ConfigFile::isFileExistAndReadable(std::string const path, std::string const index)
+bool ConfigFile::isFileExistAndReadable(std::string const path, std::string const index)
 {
-	if (getTypePath(index) == 1 && checkFile(index, 4) == 0)
-		return (0);
-	if (getTypePath(path + index) == 1 && checkFile(path + index, 4) == 0)
-		return (0);
-	return (-1);
+	if (getTypePath(index) == F_REGULAR_FILE
+		&& checkFile(index, 4))
+		return (true);
+	if (getTypePath(path + index) == F_REGULAR_FILE
+		&& checkFile(path + index, 4))
+		return (true);
+	return (false);
 }
 
 /**
