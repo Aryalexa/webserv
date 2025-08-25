@@ -270,6 +270,18 @@ std::string path_normalization(const std::string& path) {
 }
 
 /**
+ * Clean the path by replacing URL-encoded characters.
+ * Currently replaces %20 with space.
+ */
+std::string clean_path(const std::string& path) {
+    std::string cleaned = path;
+    // Replace %20 with space
+    cleaned = replace_all(cleaned, "%20", " ");
+    // Add more replacements if needed
+    return cleaned;
+}
+
+/**
  * Resolve the request path based on server configuration.
  * index, root, alias, etc.
  */
@@ -282,21 +294,25 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     ServerSetUp &server = _servers_map[server_fd];
     (void)server;
     std::string path = request.getPath();
+    if (path.empty() || path[0] != '/') { // todo: esto va aqui? bad request?
+        logError("Invalid path in request: %s", path.c_str());
+        throw HttpException(HttpStatusCode::BadRequest);
+    }
     // clean path - spaces and symbols
-    std::string clean_path = replace_all(path, "%20", " ");
+    path = clean_path(path);
     // path normalization
-    clean_path = path_normalization(clean_path);
+    path = path_normalization(path);
     // TODO: all the below list (decide general order)
     // check locations
     // apply root and alias
     // apply indexation (if ON)
     // check if file exists <- NO, esto depende del method
-    
+
     std::string valid_path;
-    if (clean_path == "/" || clean_path.empty()) {
+    if (path == "/" || path.empty()) {
         valid_path = "www/index.html";
     } else {
-        valid_path = "www" + clean_path;
+        valid_path = "www" + path;
     }
     request.setPath(valid_path);
     //request.setPath(_servers_map[server_fd].getRoot() + path);
@@ -306,12 +322,10 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     std::string response_str;
 
     Request request(request_str);
+    logDebug("🍍 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
     resolve_path(request, client_socket);
-    logDebug("preparing response. client socket: %i. query: %s %s",
-        client_socket,
-        request.getMethod().c_str(), 
-        request.getPath().c_str()
-    );
+    logDebug("preparing response. client socket: %i. Query: %s %s",
+        client_socket, request.getMethod().c_str(),request.getPath().c_str());
     try {
         HttpResponse response(request);
         response_str = response.getResponse();
@@ -341,7 +355,8 @@ std::string ServerManager::prepare_error_response(int client_socket, int code, c
         HttpResponse response(request, HttpStatusCode::InternalServerError);
         return response.getResponse();
     }
-    std::string err_page_path = _servers_map[server_fd].getPathErrorPage(code);
+    ServerSetUp &server = _servers_map[server_fd];
+    std::string err_page_path = "www"+ server.getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
         HttpResponse response(request, code, err_page_path);

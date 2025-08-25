@@ -1,5 +1,15 @@
 #include "../include/WebServ.hpp"
 
+/**
+ Add traces to logging
+To add traces (file, line, function) to your error messages and exceptions in C++98, you can use the predefined macros:
+
+__FILE__ — current file name
+__LINE__ — current line number
+__FUNCTION__ — current function name (supported by most compilers, including GCC)
+*/
+
+
 void logInfo(const char* msg, ...)
 {
 

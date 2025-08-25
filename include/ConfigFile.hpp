@@ -3,6 +3,13 @@
 
 #include "../include/WebServ.hpp"
 
+enum e_file_type {
+	F_NOT_EXIST = -1,
+	F_REGULAR_FILE = 1,
+	F_DIRECTORY = 2,
+	F_OTHER = 3
+};
+
 class ConfigFile {
 	private:
 		std::string		_path;
@@ -14,9 +21,9 @@ class ConfigFile {
 		~ConfigFile();
 
 		static int 		getTypePath(std::string const path);
-		static int 		checkFile(std::string const path, int mode);
+		static bool 	checkFile(std::string const path, int mode);
 		std::string		readFile(std::string path);
-		static int 		isFileExistAndReadable(std::string const path, std::string const index);
+		static bool 	isFileExistAndReadable(std::string const path, std::string const index);
 
 		std::string 	getPath();
 		int 			getSize();

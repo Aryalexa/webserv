@@ -91,7 +91,7 @@ void ServerSetUp::setHost(std::string token) // Check
 void ServerSetUp::setRoot(std::string root) // Check 
 {
     checkSemicolon(root);
-    if (ConfigFile::getTypePath(root) == 2)
+    if (ConfigFile::getTypePath(root) == F_DIRECTORY)
     {
         this->_root = root;
         return ;
@@ -99,7 +99,7 @@ void ServerSetUp::setRoot(std::string root) // Check
     char dir[1024];
     getcwd(dir, 1024);
     std::string full_root = dir + root;
-    if (ConfigFile::getTypePath(full_root) != 2)
+    if (ConfigFile::getTypePath(full_root) != F_DIRECTORY)
         throw ErrorException(SYNTAX_ERR_ROOT);
     this->_root = full_root;
 }
@@ -178,11 +178,11 @@ void ServerSetUp::setErrorPages(std::vector<std::string> &token) // Check
         i++;
         std::string path = token[i];
         checkSemicolon(path);
-        if (ConfigFile::getTypePath(path) != 2)
+        if (ConfigFile::getTypePath(path) != F_DIRECTORY)
         {
-            if (ConfigFile::getTypePath(this->_root + path) != 1)
+            if (ConfigFile::getTypePath(this->_root + path) != F_REGULAR_FILE)
                 throw ErrorException (INCORRECT_ERR_PATH + this->_root + path);
-            if (ConfigFile::checkFile(this->_root + path, 0) == -1 || ConfigFile::checkFile(this->_root + path, 4) == -1)
+            if (!ConfigFile::checkFile(this->_root + path, 0) || !ConfigFile::checkFile(this->_root + path, 4))
                 throw ErrorException (INCORRECT_ERR_PATH + this->_root + path + UNACCESSIBLE);
         }
         std::map<short, std::string>::iterator it = this->_error_list.find(code_error);
@@ -195,7 +195,7 @@ void ServerSetUp::setErrorPages(std::vector<std::string> &token) // Check
 
 void ServerSetUp::setLocation(std::string path, std::vector<std::string> token) // Check
 {
-    LocationParser new_location;
+    Location new_location;
 
     std::vector<std::string> methods;
     bool flag_methods = false;
@@ -208,10 +208,10 @@ void ServerSetUp::setLocation(std::string path, std::vector<std::string> token) 
     {
         if (token[i] == ROOT && (i + 1) < token.size())
         {
-            if (!new_location.getRootLocation().empty())
+            if (!new_location.getRoot().empty())
                 throw ErrorException(ROOT_DUP_ERR);
             checkSemicolon(token[++i]);
-            if (ConfigFile::getTypePath(token[i]) == 2)
+            if (ConfigFile::getTypePath(token[i]) == F_DIRECTORY)
                 new_location.setRootLocation(token[i]);
             else
                 new_location.setRootLocation(this->_root + token[i]);
@@ -343,7 +343,7 @@ void ServerSetUp::setLocation(std::string path, std::vector<std::string> token) 
     this->_locations.push_back(new_location);
 }
 
-int ServerSetUp::isValidLocation(LocationParser &location) const // Check
+int ServerSetUp::isValidLocation(Location &location) const // Check
 {
     if (location.getPath() == CGI_BIN_PATH)
     {
@@ -351,16 +351,16 @@ int ServerSetUp::isValidLocation(LocationParser &location) const // Check
             return (1);
 
 
-        if (ConfigFile::checkFile(location.getIndexLocation(), 4) < 0)
+        if (!ConfigFile::checkFile(location.getIndexLocation(), 4))
         {
-            std::string path = location.getRootLocation() + location.getPath() + "/" + location.getIndexLocation();
-            if (ConfigFile::getTypePath(path) != 1)
+            std::string path = location.getRoot() + location.getPath() + "/" + location.getIndexLocation();
+            if (ConfigFile::getTypePath(path) != F_REGULAR_FILE)
             {				
                 std::string root = getcwd(NULL, 0);
                 location.setRootLocation(root);
                 path = root + location.getPath() + "/" + location.getIndexLocation();
             }
-            if (path.empty() || ConfigFile::getTypePath(path) != 1 || ConfigFile::checkFile(path, 4) < 0)
+            if (path.empty() || ConfigFile::getTypePath(path) != F_REGULAR_FILE || !ConfigFile::checkFile(path, 4))
                 return (1);
         }
         if (location.getCgiPath().size() != location.getCgiExtension().size())
@@ -399,19 +399,19 @@ int ServerSetUp::isValidLocation(LocationParser &location) const // Check
     {
         if (location.getPath()[0] != '/')
             return (2);
-        if (location.getRootLocation().empty()) {
+        if (location.getRoot().empty()) {
             location.setRootLocation(this->_root);
         }
-        if (ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPath() + "/", location.getIndexLocation()))
+        if (!ConfigFile::isFileExistAndReadable(location.getRoot() + location.getPath() + "/", location.getIndexLocation()))
             return (5);
         if (!location.getReturn().empty())
         {
-            if (ConfigFile::isFileExistAndReadable(location.getRootLocation(), location.getReturn()))
+            if (!ConfigFile::isFileExistAndReadable(location.getRoot(), location.getReturn()))
                 return (3);
         }
         if (!location.getAlias().empty())
         {
-            if (ConfigFile::isFileExistAndReadable(location.getRootLocation(), location.getAlias()))
+            if (!ConfigFile::isFileExistAndReadable(location.getRoot(), location.getAlias()))
                  return (4);
         }
     }
@@ -434,7 +434,7 @@ bool ServerSetUp::isValidErrorPages() // Check
     {
         if (it->first < 100 || it->first > 599)
             return (false);
-        if (ConfigFile::checkFile(getRoot() + it->second, 0) < 0 || ConfigFile::checkFile(getRoot() + it->second, 4) < 0)
+        if (!ConfigFile::checkFile(getRoot() + it->second, 0) || !ConfigFile::checkFile(getRoot() + it->second, 4))
             return (false);
     }
     return (true);
@@ -464,7 +464,7 @@ const size_t &ServerSetUp::getClientMaxBodySize() //Check
     return (this->_client_max_body_size);
 }
 
-const std::vector<LocationParser> &ServerSetUp::getLocations() //Check
+const std::vector<Location> &ServerSetUp::getLocations() //Check
 {
     return (this->_locations);
 }
@@ -489,9 +489,9 @@ const std::string &ServerSetUp::getPathErrorPage(short key) // Check
     return (it->second);
 }
 
-const std::vector<LocationParser>::iterator ServerSetUp::getLocationKey(std::string key) // Check 
+const std::vector<Location>::iterator ServerSetUp::getLocationKey(std::string key) // Check 
 {
-    std::vector<LocationParser>::iterator it;
+    std::vector<Location>::iterator it;
     for (it = this->_locations.begin(); it != this->_locations.end(); it++)
     {
         if (it->getPath() == key)
@@ -512,8 +512,8 @@ bool ServerSetUp::checkLocations() const // Check
 {
     if (this->_locations.size() < 2)
         return (false);
-    std::vector<LocationParser>::const_iterator it1;
-    std::vector<LocationParser>::const_iterator it2;
+    std::vector<Location>::const_iterator it1;
+    std::vector<Location>::const_iterator it2;
     for (it1 = this->_locations.begin(); it1 != this->_locations.end() - 1; it1++) {
         for (it2 = it1 + 1; it2 != this->_locations.end(); it2++) {
             if (it1->getPath() == it2->getPath())
