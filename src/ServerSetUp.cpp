@@ -182,7 +182,7 @@ void ServerSetUp::setErrorPages(std::vector<std::string> &token) // Check
         {
             if (ConfigFile::getTypePath(this->_root + path) != F_REGULAR_FILE)
                 throw ErrorException (INCORRECT_ERR_PATH + this->_root + path);
-            if (!ConfigFile::checkFile(this->_root + path, 0) || !ConfigFile::checkFile(this->_root + path, 4))
+            if (!ConfigFile::checkFile(this->_root + path, F_OK) || !ConfigFile::checkFile(this->_root + path, R_OK))
                 throw ErrorException (INCORRECT_ERR_PATH + this->_root + path + UNACCESSIBLE);
         }
         std::map<short, std::string>::iterator it = this->_error_list.find(code_error);
@@ -351,7 +351,7 @@ int ServerSetUp::isValidLocation(Location &location) const // Check
             return (1);
 
 
-        if (!ConfigFile::checkFile(location.getIndexLocation(), 4))
+        if (!ConfigFile::checkFile(location.getIndexLocation(), R_OK))
         {
             std::string path = location.getRoot() + location.getPath() + "/" + location.getIndexLocation();
             if (ConfigFile::getTypePath(path) != F_REGULAR_FILE)
@@ -360,7 +360,7 @@ int ServerSetUp::isValidLocation(Location &location) const // Check
                 location.setRootLocation(root);
                 path = root + location.getPath() + "/" + location.getIndexLocation();
             }
-            if (path.empty() || ConfigFile::getTypePath(path) != F_REGULAR_FILE || !ConfigFile::checkFile(path, 4))
+            if (path.empty() || ConfigFile::getTypePath(path) != F_REGULAR_FILE || !ConfigFile::checkFile(path, R_OK))
                 return (1);
         }
         if (location.getCgiPath().size() != location.getCgiExtension().size())
@@ -434,7 +434,7 @@ bool ServerSetUp::isValidErrorPages() // Check
     {
         if (it->first < 100 || it->first > 599)
             return (false);
-        if (!ConfigFile::checkFile(getRoot() + it->second, 0) || !ConfigFile::checkFile(getRoot() + it->second, 4))
+        if (!ConfigFile::checkFile(getRoot() + it->second, F_OK) || !ConfigFile::checkFile(getRoot() + it->second, R_OK))
             return (false);
     }
     return (true);

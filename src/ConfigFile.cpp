@@ -30,6 +30,8 @@ int ConfigFile::getTypePath(std::string const path)
 
 /**
  * Comprueba permisos con `access()`
+ * (F_OK): Comprueba si el archivo existe.
+ * (R_OK): Comprueba si el archivo es legible (permiso de lectura).
  */
 bool	ConfigFile::checkFile(std::string const path, int mode)
 {
@@ -47,10 +49,10 @@ bool	ConfigFile::checkFile(std::string const path, int mode)
 bool ConfigFile::isFileExistAndReadable(std::string const path, std::string const index)
 {
 	if (getTypePath(index) == F_REGULAR_FILE
-		&& checkFile(index, 4))
+		&& checkFile(index, R_OK))
 		return (true);
 	if (getTypePath(path + index) == F_REGULAR_FILE
-		&& checkFile(path + index, 4))
+		&& checkFile(path + index, R_OK))
 		return (true);
 	return (false);
 }

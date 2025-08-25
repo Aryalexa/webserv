@@ -14,7 +14,7 @@ int ReadConfig::createServerGroup(const std::string &config_file)
 
 	if (file.getTypePath(file.getPath()) != F_REGULAR_FILE)
 		throw ErrorException(INVALID_FILE_ERR);
-	if (!file.checkFile(file.getPath(), 4))
+	if (!file.checkFile(file.getPath(), R_OK))
 		throw ErrorException(ACCESS_FILE_ERR);
 	content = file.readFile(config_file);
 	if (content.empty())
