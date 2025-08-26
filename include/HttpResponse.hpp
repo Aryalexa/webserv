@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef HTTPRESPONSE_HPP
+#define HTTPRESPONSE_HPP
+
 #include "../include/WebServ.hpp"
 
 
@@ -54,3 +57,5 @@ public:
 	void handle_GET();
 
 };
+
+#endif

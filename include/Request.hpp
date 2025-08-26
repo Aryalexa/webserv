@@ -1,3 +1,6 @@
+#ifndef REQUEST_HPP
+#define REQUEST_HPP
+
 #include "WebServ.hpp"
 
 class Request
@@ -65,3 +68,5 @@ class Request
 };
 
 std::ostream&	operator<<(std::ostream& os, const Request& re);
+
+#endif
