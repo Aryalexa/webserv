@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef HTTPRESPONSE_HPP
+#define HTTPRESPONSE_HPP
+
 #include "../include/WebServ.hpp"
 
 
@@ -50,7 +53,10 @@ public:
 	void redirect();
 	void isOk();
 	void createOk();
+	void isNotFound();
 
 	void handle_GET();
 
 };
+
+#endif

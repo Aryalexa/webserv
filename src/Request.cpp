@@ -6,12 +6,12 @@ std::vector<std::string>		Request::init_methods()
 	std::vector<std::string>	methods;
 
 	methods.push_back("GET");
-	methods.push_back("HEAD");
+	// methods.push_back("HEAD");
 	methods.push_back("POST");
 	methods.push_back("PUT");
 	methods.push_back("DELETE");
-	methods.push_back("OPTIONS");
-	methods.push_back("TRACE" );
+	// methods.push_back("OPTIONS");
+	// methods.push_back("TRACE" );
 
 	return methods;
 }
@@ -321,6 +321,7 @@ void				Request::findQuery()
 	i = this->_path.find_first_of('?');
 	if (i != std::string::npos)
 	{
+		logDebug("[DEBUG] Query found in path");
 		this->_query.assign(this->_path, i + 1, std::string::npos);
 		this->_path = this->_path.substr(0, i);
 	}

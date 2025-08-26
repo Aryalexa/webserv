@@ -25,7 +25,16 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
     - Determine the response status
     */
 
-  if (request.getMethod() == "GET") 
+  if (request.getMethod() == "POST" && request.getBody().empty()) {
+      // Body vacío: error 400
+      _status_line = ResponseStatus(HttpStatusCode::NoContent, "No content");
+      _body = "<h1>204 No Content</h1>";
+      _headers.content_type = "text/html";
+      _headers.content_length = to_string(_body.size());
+      _headers.connection = "close";
+      return;
+  }
+  else if (request.getMethod() == "GET") 
     handle_GET();
   else if (request.getMethod() == "POST" && request.getPath() == "www/upload") {
     logDebug("[DEBUG] Body size: %i", request.getBody().size());
@@ -34,19 +43,31 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
     createOk();
   }
   else if (request.getMethod() == "DELETE" ) {
-    std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
-    Cgi cgi("cgi-bin/deleteFile.py");
-    std::string cgi_output = cgi.run(request);
-    isOk();
+    if(request.getQuery().empty()) {
+      isNotFound();
+    } else {
+      std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
+      Cgi cgi("cgi-bin/deleteFile.py");
+      std::string cgi_output = cgi.run(request);
+      isOk();
+    }
   }
+  
+  if (_status_line.code == 0) {
+    _status_line = ResponseStatus(HttpStatusCode::BadRequest, "Bad Request");
+    _body = "<h1>400 Bad Request</h1>";
+    _headers.content_type = "text/html";
+    _headers.content_length = to_string(_body.size());
+    _headers.connection = "keep-alive";
+}
 
   //añadido _headers.location.empty() porque si es una redireccion , el body esta vacio 
   //(_body.empty() && _headers.location.empty()) quito ambos porque delete no tiene ni location ni body
-  if (_headers.content_type.empty() || _headers.connection.empty()
-  || _status_line.code == 0) {
-    logError("bad");
-    exit(2);
-  }
+  // if (_headers.content_type.empty() || _headers.connection.empty()
+  // || _status_line.code == 0) {
+  //   logError("bad");
+  //   exit(2);
+  // }
 }
 
 std::string get_default_error_page(int errorCode) {
@@ -238,6 +259,16 @@ void HttpResponse::isOk() {
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
+
+    _body = ""; // Sin cuerpo
+}
+
+void HttpResponse::isNotFound() {
+    int code = HttpStatusCode::NotFound;
+    _status_line = ResponseStatus(code, statusCodeString(code));
+    _headers.content_type = "text/html";
+    _headers.content_length = "0";
+    _headers.connection = "close";
 
     _body = ""; // Sin cuerpo
 }

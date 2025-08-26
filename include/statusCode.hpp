@@ -1,3 +1,6 @@
+#ifndef STATUSCODE_HPP
+#define STATUSCODE_HPP
+
 # include "../include/WebServ.hpp"
 
 
@@ -77,3 +80,5 @@ namespace HttpStatusCode {
     const int NotExtended = 510;
     const int NetworkAuthenticationRequired = 511;
 }
+
+#endif
