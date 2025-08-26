@@ -53,6 +53,7 @@ public:
 	void redirect();
 	void isOk();
 	void createOk();
+	void isNotFound();
 
 	void handle_GET();
 

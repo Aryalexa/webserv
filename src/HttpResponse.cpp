@@ -27,11 +27,11 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
 
   if (request.getMethod() == "POST" && request.getBody().empty()) {
       // Body vacío: error 400
-      _status_line = ResponseStatus(HttpStatusCode::BadRequest, "Bad Request");
-      _body = "<h1>400 Bad Request: Body vacío</h1>";
+      _status_line = ResponseStatus(HttpStatusCode::NoContent, "No content");
+      _body = "<h1>204 No Content</h1>";
       _headers.content_type = "text/html";
       _headers.content_length = to_string(_body.size());
-      _headers.connection = "keep-alive";
+      _headers.connection = "close";
       return;
   }
   else if (request.getMethod() == "GET") 
@@ -43,10 +43,14 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
     createOk();
   }
   else if (request.getMethod() == "DELETE" ) {
-    std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
-    Cgi cgi("cgi-bin/deleteFile.py");
-    std::string cgi_output = cgi.run(request);
-    isOk();
+    if(request.getQuery().empty()) {
+      isNotFound();
+    } else {
+      std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
+      Cgi cgi("cgi-bin/deleteFile.py");
+      std::string cgi_output = cgi.run(request);
+      isOk();
+    }
   }
   
   if (_status_line.code == 0) {
@@ -255,6 +259,16 @@ void HttpResponse::isOk() {
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
+
+    _body = ""; // Sin cuerpo
+}
+
+void HttpResponse::isNotFound() {
+    int code = HttpStatusCode::NotFound;
+    _status_line = ResponseStatus(code, statusCodeString(code));
+    _headers.content_type = "text/html";
+    _headers.content_length = "0";
+    _headers.connection = "close";
 
     _body = ""; // Sin cuerpo
 }
