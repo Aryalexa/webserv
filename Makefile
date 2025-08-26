@@ -14,6 +14,7 @@ INCLUDE   = include
 # === src files =======================================
 SRC       = src/ConfigFile.cpp \
 			src/Location.cpp \
+			src/paths.cpp \
 			src/logging.cpp \
 			src/ReadConfig.cpp \
 			src/ServerSetUp.cpp \

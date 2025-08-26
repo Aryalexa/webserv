@@ -239,49 +239,6 @@ bool ServerManager::_request_complete(const std::string& request) {
 }
 
 /**
- * Normalize the path by resolving ., .. and redundant slashes.
- * To prevent directory traversal attacks.
- */
-std::string path_normalization(const std::string& path) {
-    std::string normalized = path;
-    // Replace multiple slashes with a single slash
-    size_t pos;
-    while ((pos = normalized.find("//")) != std::string::npos) {
-        normalized.replace(pos, 2, "/");
-    }
-    // Remove occurrences of "/./"
-    while ((pos = normalized.find("/./")) != std::string::npos) {
-        normalized.replace(pos, 3, "/");
-    }
-    // Handle "/../" by removing the preceding directory
-    while ((pos = normalized.find("/../")) != std::string::npos) {
-        if (pos == 0) {
-            normalized.erase(0, 3); // Remove leading "/.."
-        } else {
-            size_t prev_slash = normalized.rfind('/', pos - 1);
-            if (prev_slash == std::string::npos) {
-                normalized.erase(0, pos + 4); // Remove everything before "/../"
-            } else {
-                normalized.erase(prev_slash, pos + 3 - prev_slash);
-            }
-        }
-    }
-    return normalized;
-}
-
-/**
- * Clean the path by replacing URL-encoded characters.
- * Currently replaces %20 with space.
- */
-std::string clean_path(const std::string& path) {
-    std::string cleaned = path;
-    // Replace %20 with space
-    cleaned = replace_all(cleaned, "%20", " ");
-    // Add more replacements if needed
-    return cleaned;
-}
-
-/**
  * Resolve the request path based on server configuration.
  * index, root, alias, etc.
  */
@@ -292,30 +249,39 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         throw HttpException(HttpStatusCode::InternalServerError);
     }
     ServerSetUp &server = _servers_map[server_fd];
-    (void)server;
     std::string path = request.getPath();
     if (path.empty() || path[0] != '/') { // todo: esto va aqui? bad request?
         logError("Invalid path in request: %s", path.c_str());
         throw HttpException(HttpStatusCode::BadRequest);
     }
-    // clean path - spaces and symbols
     path = clean_path(path);
-    // path normalization
     path = path_normalization(path);
-    // TODO: all the below list (decide general order)
     // check locations
-    // apply root and alias
-    // apply indexation (if ON)
-    // check if file exists <- NO, esto depende del method
-
-    std::string valid_path;
-    if (path == "/" || path.empty()) {
-        valid_path = "www/index.html";
-    } else {
-        valid_path = "www" + path;
+    std::string root = server.getRoot();
+    std::string index = server.getIndex();
+    bool autoindex = server.getAutoindex();
+    for (size_t i = 0; i < server.getLocations().size(); ++i) {
+        Location loc = server.getLocations()[i];
+        if (loc.getPath() == path || in_str(loc.getPath(), path)) {
+            // methods
+            if (!loc.getMethods()[method_toEnum(request.getMethod())]) {
+                logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc.getPath().c_str());
+                throw HttpException(HttpStatusCode::MethodNotAllowed);
+            }
+            // root
+            if (loc.getRoot() != "") root = loc.getRoot();
+            // autoindex
+            if (loc.getAutoindex() != autoindex) autoindex = loc.getAutoindex();
+            // ...
+            break;
+        }
     }
-    request.setPath(valid_path);
-    //request.setPath(_servers_map[server_fd].getRoot() + path);
+    if (root + path == WWW_ROOT && server.getIndex() != "" && !autoindex) {
+        path = server.getIndex();
+        logDebug("🍍🍍 Using server index as root: %s", root.c_str());
+    }
+    path = root + path;    
+    request.setPath(path);
 }
 
 std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
@@ -324,7 +290,7 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     Request request(request_str);
     logDebug("🍍 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
     resolve_path(request, client_socket);
-    logDebug("preparing response. client socket: %i. Query: %s %s",
+    logDebug("🍍 preparing response. client socket: %i. Query: %s %s",
         client_socket, request.getMethod().c_str(),request.getPath().c_str());
     try {
         HttpResponse response(request);

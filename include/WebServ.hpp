@@ -40,6 +40,7 @@
 # include <sys/select.h>
 # include <arpa/inet.h>
 
+#include "paths.hpp"
 #include "logging.hpp"
 #include "statusCode.hpp"
 #include "ServerSetUp.hpp"
