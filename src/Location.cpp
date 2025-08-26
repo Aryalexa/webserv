@@ -1,5 +1,6 @@
 #include "../include/WebServ.hpp"
 
+
 Location::Location()
 {
 	this->_path = "";
@@ -10,7 +11,7 @@ Location::Location()
 	this->_alias = "";
 	this->_client_max_body_size = MAX_CONTENT_LENGTH;
 	this->_methods.reserve(5);
-	this->_methods.push_back(1);
+	this->_methods.push_back(1); // GET enabled by default
 	this->_methods.push_back(0);
 	this->_methods.push_back(0);
 	this->_methods.push_back(0);
@@ -76,15 +77,15 @@ void Location::setMethods(std::vector<std::string> methods)
 	for (size_t i = 0; i < methods.size(); i++)
 	{
 		if (methods[i] == "GET")
-			this->_methods[0] = 1;
+			this->_methods[M_GET] = 1;
 		else if (methods[i] == "POST")
-			this->_methods[1] = 1;
+			this->_methods[M_POST] = 1;
 		else if (methods[i] == "DELETE")
-			this->_methods[2] = 1;
+			this->_methods[M_DELETE] = 1;
 		else if (methods[i] == "PUT")
-			this->_methods[3] = 1;
+			this->_methods[M_PUT] = 1;
 		else if (methods[i] == "HEAD")
-			this->_methods[4] = 1;
+			this->_methods[M_HEAD] = 1;
 		else
 			throw ServerSetUp::ErrorException(ERR_SUPPORT_METHOD + methods[i]);
 	}
@@ -201,27 +202,27 @@ const unsigned long &Location::getMaxBodySize() const
 std::string Location::getPrintMethods() const
 {
 	std::string res;
-	if (_methods[4])
+	if (_methods[M_HEAD])
 		res.insert(0, "HEAD");
-	if (_methods[3])
+	if (_methods[M_PUT])
 	{
 		if (!res.empty())
 			res.insert(0, ", ");
 		res.insert(0, "PUT");
 	}
-	if (_methods[2])
+	if (_methods[M_DELETE])
 	{
 		if (!res.empty())
 			res.insert(0, "\n");
 		res.insert(0, "DELETE");
 	}
-	if (_methods[1])
+	if (_methods[M_POST])
 	{
 		if (!res.empty())
 			res.insert(0, "\n");
 		res.insert(0, "POST");
 	}
-	if (_methods[0])
+	if (_methods[M_GET])
 	{
 		if (!res.empty())
 			res.insert(0, "\n");

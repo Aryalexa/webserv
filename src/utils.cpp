@@ -205,3 +205,29 @@ std::string starts_with(const std::string& str, const std::string& prefix) {
 	}
 	return str.substr(0, prefix.length()) == prefix ? prefix : "";
 }
+
+std::string method_toString(int method) {
+	switch (method) {
+		case M_GET: return "GET";
+		case M_POST: return "POST";
+		case M_DELETE: return "DELETE";
+		case M_PUT: return "PUT";
+		case M_HEAD: return "HEAD";
+		default: {
+			throw std::runtime_error("Invalid method enum value");
+			return "UNKNOWN";
+		}
+	}
+}
+
+short method_toEnum(const std::string& method) {
+	if (method == "GET") return M_GET;
+	else if (method == "POST") return M_POST;
+	else if (method == "DELETE") return M_DELETE;
+	else if (method == "PUT") return M_PUT;
+	else if (method == "HEAD") return M_HEAD;
+	else {
+		throw std::runtime_error("Invalid method string: " + method);
+		return -1; // never reached
+	}
+}

@@ -3,6 +3,13 @@
 
 #include "../include/WebServ.hpp"
 
+enum e_methods {
+	M_GET = 0,
+	M_POST,
+	M_DELETE,
+	M_PUT,
+	M_HEAD
+};
 
 int 		                ft_stoi(std::string str);
 void                        set_nonblocking(int sock);
@@ -23,6 +30,8 @@ bool 			in_str(const std::string &word, const std::string &str);
 std::string 	read_file_binary(const std::string &file_path);
 std::string		read_file_text(const std::string &file_path);
 std::string		replace_all(const std::string& str, const std::string& from, const std::string& to);
+std::string		method_toString(int method);
+short			method_toEnum(const std::string& method);
 
 
 #endif // UTILS_HPP
