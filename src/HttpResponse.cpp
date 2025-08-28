@@ -111,7 +111,7 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
 
 HttpResponse::HttpResponse(const Request &request, int errorCode, const std::string errorPagePath) : _request(request) {
   _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
-  std::string valid_path = errorPagePath.substr(1, errorPagePath.size() - 1);
+  std::string valid_path = errorPagePath;
   _body = read_file_binary(valid_path);
 
   _headers.content_type = "text/html";
