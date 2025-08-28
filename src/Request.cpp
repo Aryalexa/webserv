@@ -6,12 +6,12 @@ std::vector<std::string>		Request::init_methods()
 	std::vector<std::string>	methods;
 
 	methods.push_back("GET");
-	// methods.push_back("HEAD");
+	methods.push_back("HEAD");
 	methods.push_back("POST");
 	methods.push_back("PUT");
 	methods.push_back("DELETE");
-	// methods.push_back("OPTIONS");
-	// methods.push_back("TRACE" );
+	methods.push_back("OPTIONS");
+	methods.push_back("TRACE");
 
 	return methods;
 }
