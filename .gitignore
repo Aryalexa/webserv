@@ -2,10 +2,15 @@
 .vscode
 .DS_Store
 .github/
+
 *.o
 *.out
 *.exe
 *.a
+
+.venv/
+*.pyc
+__pycache__/
 
 miniclient
 webserv
