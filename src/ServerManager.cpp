@@ -289,10 +289,11 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
 
     Request request(request_str);
     logDebug("🍍 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
-    resolve_path(request, client_socket);
+    
     logDebug("🍍 preparing response. client socket: %i. Query: %s %s",
         client_socket, request.getMethod().c_str(),request.getPath().c_str());
     try {
+        resolve_path(request, client_socket);
         HttpResponse response(request);
         response_str = response.getResponse();
     } catch (const HttpException &e) {
