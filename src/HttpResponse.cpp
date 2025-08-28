@@ -13,6 +13,7 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
   _body = "";
   _headers.content_type = "";
   _headers.content_length = "0";
+  _headers.allow = "";
   _headers.connection = "";
   _headers.location = "";
 
@@ -27,10 +28,11 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
 
   if (request.getMethod() == "POST" && request.getBody().empty()) {
       // Body vacío: error 400
-      _status_line = ResponseStatus(HttpStatusCode::NoContent, "No content");
-      _body = "<h1>204 No Content</h1>";
+      _status_line = ResponseStatus(HttpStatusCode::MethodNotAllowed, "Method Not Allowed");
+      _body = "";
       _headers.content_type = "text/html";
       _headers.content_length = to_string(_body.size());
+      _headers.allow = "GET";
       _headers.connection = "close";
       return;
   }
@@ -54,8 +56,8 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
   }
   
   if (_status_line.code == 0) {
-    _status_line = ResponseStatus(HttpStatusCode::BadRequest, "Bad Request");
-    _body = "<h1>400 Bad Request</h1>";
+    _status_line = ResponseStatus(HttpStatusCode::MethodNotAllowed, "Method Not Allowed");
+    _body = "";
     _headers.content_type = "text/html";
     _headers.content_length = to_string(_body.size());
     _headers.connection = "keep-alive";
@@ -128,6 +130,7 @@ std::string HttpResponse::getHeaders() const {
     std::string headers =
         "Content-Type: " + _headers.content_type + "\r\n" +
         "Content-Length: " + _headers.content_length + "\r\n" +
+        "Allow: " + _headers.allow + "\r\n" +
         "Connection: " + _headers.connection + "\r\n";
     if (!_headers.location.empty())
         headers += "Location: " + _headers.location + "\r\n";

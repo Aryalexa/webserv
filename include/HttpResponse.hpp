@@ -17,6 +17,7 @@ struct ResponseStatus {
 struct ResponseHeaders {
 	std::string content_type;
 	std::string content_length;
+	std::string allow;
 	std::string connection;
 	std::string location;
 };
