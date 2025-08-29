@@ -7,7 +7,7 @@ ConfigFile::ConfigFile(std::string const path) : _path(path), _size(0) { }
 ConfigFile::~ConfigFile() { }
 
 /**
- * ¿Es archivo (`1`), directorio (`2`) o inexistente (`-1`)?
+ * ¿Es archivo (`1:F_REGULAR_FILE`), directorio (`2:F_DIRECTORY`) o inexistente (`-1:F_NOT_EXIST`)?
  */
 int ConfigFile::getTypePath(std::string const path)
 {

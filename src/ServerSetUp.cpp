@@ -96,12 +96,15 @@ void ServerSetUp::setRoot(std::string root) // Check
         this->_root = root;
         return ;
     }
+    // if it is not a directory:
     char dir[1024];
     getcwd(dir, 1024);
     std::string full_root = dir + root;
     if (ConfigFile::getTypePath(full_root) != F_DIRECTORY)
         throw ErrorException(SYNTAX_ERR_ROOT);
     this->_root = full_root;
+    logError("root is not a directory - averigua que pasa en este caso");
+    exit(2);
 }
 
 void ServerSetUp::setPort(std::string token) // Check 
@@ -507,6 +510,9 @@ const std::vector<Location>::iterator ServerSetUp::getLocationKey(std::string ke
     throw ErrorException(LOCATION_ERR);
 }
 
+/**
+ * 
+ */
 void ServerSetUp::checkSemicolon(std::string &token) // Check 
 {
     size_t pos = token.rfind(';');

@@ -258,7 +258,10 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     path = path_normalization(path);
     // check locations
     std::string root = server.getRoot();
-    std::string index = server.getIndex();
+    std::string index = "";
+    if (path.empty() || path == "/") {
+        index = server.getIndex();
+    }
     bool autoindex = server.getAutoindex();
     for (size_t i = 0; i < server.getLocations().size(); ++i) {
         Location loc = server.getLocations()[i];
@@ -276,15 +279,25 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
                 path = loc.getAlias() + path.substr(loc.getPath().size());
                 logDebug("🍍 Using alias. New path: %s", path.c_str());
             }
+            // index - check loc.path is a directory
+            if (loc.getIndexLocation() != "" && ConfigFile::getTypePath(root + loc.getPath()) == F_DIRECTORY)
+                index = loc.getIndexLocation();
             // autoindex
             if (loc.getAutoindex() != autoindex) autoindex = loc.getAutoindex();
             // ...
             break;
         }
     }
-    if (root + path == WWW_ROOT && server.getIndex() != "" && !autoindex) {
-        path = server.getIndex();
-        logDebug("🍍🍍 Using server index as root: %s", root.c_str());
+    // check if directory
+    if (ConfigFile::getTypePath(root + path) == F_DIRECTORY) {
+        if (index != "") {
+            if (path == "/") index = index.substr(1, index.size() - 1); // remove leading /
+            path = path + index;
+            logDebug("🍍🍍 Using index: %s", index.c_str());
+        }
+        else {
+            throw HttpException(HttpStatusCode::Forbidden); // No index, no autoindex -> 403
+        }
     }
     path = root + path;    
     request.setPath(path);
@@ -329,10 +342,10 @@ std::string ServerManager::prepare_error_response(int client_socket, int code, c
         return response.getResponse();
     }
     ServerSetUp &server = _servers_map[server_fd];
-    std::string err_page_path = "www"+ server.getPathErrorPage(code);
+    std::string err_page_path = server.getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
-        HttpResponse response(request, code, err_page_path);
+        HttpResponse response(request, code, WWW_ROOT + err_page_path);
         response_str = response.getResponse();
         return response_str;
     }
@@ -340,8 +353,10 @@ std::string ServerManager::prepare_error_response(int client_socket, int code, c
     // if not found, treat web server error
     std::string message = statusCodeString(code);
     switch (code) {
-        case HttpStatusCode::NotFound: // show error page
+        case HttpStatusCode::NotFound:
+        case HttpStatusCode::Forbidden:
             {
+                // show error page
                 logError("🍊 Acción: Mostrar página de error %d.", code);
                 HttpResponse response(request, code);
                 response_str = response.getResponse();
