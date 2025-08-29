@@ -62,7 +62,9 @@ void Location::setPath(std::string token)
 void Location::setRootLocation(std::string token)
 {
 	if (ConfigFile::getTypePath(token) != F_DIRECTORY)
-		throw ServerSetUp::ErrorException(ERR_ROOR_LOCATION);
+		throw ServerSetUp::ErrorException(ERR_ROOT_LOCATION);
+	if (Location::getAlias() != "")
+		throw ServerSetUp::ErrorException(ERR_ROOT_ALIAS);
 	this->_root = token;
 }
 
@@ -111,6 +113,8 @@ void Location::setReturn(std::string token)
 
 void Location::setAlias(std::string token)
 {
+	if (Location::getRootLocation() != "")
+		throw ServerSetUp::ErrorException(ERR_ROOT_ALIAS);
 	this->_alias = token;
 }
 
@@ -149,7 +153,7 @@ const std::string &Location::getPath() const
 	return (this->_path);
 }
 
-const std::string &Location::getRoot() const
+const std::string &Location::getRootLocation() const
 {
 	return (this->_root);
 }

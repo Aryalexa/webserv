@@ -199,11 +199,18 @@ std::string replace_all(const std::string& str, const std::string& from, const s
     return result;
 }
 
-std::string starts_with(const std::string& str, const std::string& prefix) {
-	if (str.length() < prefix.length()) {
-		return "";
-	}
-	return str.substr(0, prefix.length()) == prefix ? prefix : "";
+/**
+ * check if 'path' matches 'prefix' exactly or as a directory (i.e., followed by a '/')
+ */
+bool path_matches(const std::string& prefix, const std::string& path) {
+    if (path == prefix)
+        return true;
+    if (path.size() > prefix.size() 
+		&& path.compare(0, prefix.size(), prefix) == 0 
+		&& path[prefix.size()] == '/'
+	)
+        return true;
+    return false;
 }
 
 std::string method_toString(int method) {
