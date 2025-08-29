@@ -3,7 +3,8 @@
 
 #include "../include/WebServ.hpp"
 
-#define ERR_ROOR_LOCATION "Error: Root of Location"
+#define ERR_ROOT_ALIAS "Error: Alias and Root cannot coexist in the same location"
+#define ERR_ROOT_LOCATION "Error: Root must be a valid directory"
 #define ERR_SUPPORT_METHOD "Error: Allow Method not Supported "
 
 class Location
@@ -41,7 +42,7 @@ class Location
 		void                                        setMaxBodySize(unsigned long token);
 
 		const std::string                           &getPath() const;
-		const std::string                           &getRoot() const;
+		const std::string                           &getRootLocation() const;
 		const std::vector<short>                    &getMethods() const;
 		const bool                                  &getAutoindex() const;
 		const std::string                           &getIndexLocation() const;

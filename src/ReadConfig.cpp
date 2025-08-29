@@ -229,7 +229,7 @@ void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 		else if (tokens[i] != "}" && tokens[i] != "{")
 		{
 			if (!flag_loc)
-				throw  ErrorException(TOKEN_ERR);
+				throw  ErrorException(TOKEN_ERR ": " + tokens[i] + "(unknown token in location)");
 			else
 				throw  ErrorException(DIRECTIVE_ERR);
 		}

@@ -262,14 +262,20 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     bool autoindex = server.getAutoindex();
     for (size_t i = 0; i < server.getLocations().size(); ++i) {
         Location loc = server.getLocations()[i];
-        if (loc.getPath() == path || in_str(loc.getPath(), path)) {
+        if (loc.getPath() == path || path_matches(loc.getPath(), path)) {
+            logDebug("🍍🍍🍍 Location matched: %s", loc.getPath().c_str());
             // methods
             if (!loc.getMethods()[method_toEnum(request.getMethod())]) {
                 logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc.getPath().c_str());
                 throw HttpException(HttpStatusCode::MethodNotAllowed);
             }
             // root
-            if (loc.getRoot() != "") root = loc.getRoot();
+            if (loc.getRootLocation() != "") root = loc.getRootLocation();
+            // alias
+            if (loc.getAlias() != "") {
+                path = loc.getAlias() + path.substr(loc.getPath().size());
+                logDebug("🍍 Using alias. New path: %s", path.c_str());
+            }
             // autoindex
             if (loc.getAutoindex() != autoindex) autoindex = loc.getAutoindex();
             // ...
@@ -288,12 +294,12 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     std::string response_str;
 
     Request request(request_str);
-    logDebug("🍍 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
+    logDebug("🍅 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
     
-    logDebug("🍍 preparing response. client socket: %i. Query: %s %s",
-        client_socket, request.getMethod().c_str(),request.getPath().c_str());
     try {
         resolve_path(request, client_socket);
+        logDebug("🍅 preparing response. client socket: %i. Query: %s %s",
+            client_socket, request.getMethod().c_str(),request.getPath().c_str());
         HttpResponse response(request);
         response_str = response.getResponse();
     } catch (const HttpException &e) {

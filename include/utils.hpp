@@ -30,6 +30,7 @@ bool 			in_str(const std::string &word, const std::string &str);
 std::string 	read_file_binary(const std::string &file_path);
 std::string		read_file_text(const std::string &file_path);
 std::string		replace_all(const std::string& str, const std::string& from, const std::string& to);
+bool			path_matches(const std::string& prefix, const std::string& path);
 std::string		method_toString(int method);
 short			method_toEnum(const std::string& method);
 
