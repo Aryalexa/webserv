@@ -148,7 +148,7 @@ void Location::setMaxBodySize(unsigned long token)
 	this->_client_max_body_size = token;
 }
 
-const std::string &Location::getPath() const
+const std::string &Location::getPathLocation() const
 {
 	return (this->_path);
 }

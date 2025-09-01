@@ -8,6 +8,7 @@
 #define SYNTAX_ERR_PORT "Syntax Error: port"
 #define SYNTAX_ERR_CLIENT_MAX_SIZE "Syntax Error: client_max_body_size"
 #define SYNTAX_ERR_AUTOINDEX "Syntax Error: autoindex"
+#define SYNTAX_ERR_INDEX "Syntax Error: index"
 #define TOKEN_ERR "Error: Invalid Token"
 #define PAGE_ERR_INIT "Error: Page Initialization Failed"
 #define PAGE_ERR_CODE "Error: Code is Invalid"

@@ -265,22 +265,22 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     bool autoindex = server.getAutoindex();
     for (size_t i = 0; i < server.getLocations().size(); ++i) {
         Location loc = server.getLocations()[i];
-        if (loc.getPath() == path || path_matches(loc.getPath(), path)) {
-            logDebug("🍍🍍🍍 Location matched: %s", loc.getPath().c_str());
+        if (path_matches(loc.getPathLocation(), path)) {
+            logDebug("🍍🍍🍍 Location matched: %s", loc.getPathLocation().c_str());
             // methods
             if (!loc.getMethods()[method_toEnum(request.getMethod())]) {
-                logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc.getPath().c_str());
+                logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc.getPathLocation().c_str());
                 throw HttpException(HttpStatusCode::MethodNotAllowed);
             }
             // root
             if (loc.getRootLocation() != "") root = loc.getRootLocation();
             // alias
             if (loc.getAlias() != "") {
-                path = loc.getAlias() + path.substr(loc.getPath().size());
+                path = loc.getAlias() + path.substr(loc.getPathLocation().size());
                 logDebug("🍍 Using alias. New path: %s", path.c_str());
             }
             // index - check loc.path is a directory
-            if (loc.getIndexLocation() != "" && ConfigFile::getTypePath(root + loc.getPath()) == F_DIRECTORY)
+            if (loc.getIndexLocation() != "" && ConfigFile::getTypePath(root + loc.getPathLocation()) == F_DIRECTORY)
                 index = loc.getIndexLocation();
             // autoindex
             if (loc.getAutoindex() != autoindex) autoindex = loc.getAutoindex();
@@ -291,9 +291,11 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     // check if directory
     if (ConfigFile::getTypePath(root + path) == F_DIRECTORY) {
         if (index != "") {
-            if (path == "/") index = index.substr(1, index.size() - 1); // remove leading /
+            // should end with /
+            if (path[path.length() - 1] != '/')
+                path += "/";
+            logDebug("🍍🍍 Using path + index: [%s] + [%s]", path.c_str(), index.c_str());
             path = path + index;
-            logDebug("🍍🍍 Using index: %s", index.c_str());
         }
         else {
             throw HttpException(HttpStatusCode::Forbidden); // No index, no autoindex -> 403

@@ -2,16 +2,24 @@
 
 void tests() {
     // Aquí puedes agregar llamadas a funciones de prueba si es necesario
-    logInfo("%i", path_matches("/img", "/img/pic.png")); // true
-    logInfo("%i", path_matches("/img", "/img")); // true
-    logInfo("%i", path_matches("/img", "/image")); // false
-    logInfo("%i", path_matches("/img", "/im")); // false
-    logInfo("%i", path_matches("/img", "/imggallery")); // false
+    logInfo("%i", path_matches("/img/", "/img/pic.png")); // true
+    logInfo("%i", path_matches("/img/", "/img/")); // true
+    logInfo("%i", path_matches("/img/", "/img")); // true
+    logInfo("%i", path_matches("/img/", "/imges")); // false
+    logInfo("%i", path_matches("/img/", "/im")); // false
+    logInfo("%i", path_matches("/img/", "/imggallery")); // false
+    logInfo("%i", path_matches("/hola/que/", "/hola/que")); // true
+    logInfo("%i", path_matches("/hola/que/", "/hola/que/")); // true
+    logInfo("%i", path_matches("/hola/que/", "/hola/que/tal.html")); // true
+    logInfo("%i", path_matches("/hola/que/", "/hola/quetal.html")); // false
+    logInfo("%i", path_matches("/", "/")); // true
+    logInfo("%i", path_matches("/", "/index.html")); // true
+    logInfo("%i", path_matches("/", "/images/pic.png")); // true
 }
 
 int main(int argc, char **argv) 
 {
-    // tests(); // Descomenta para ejecutar pruebas
+    //tests(); // Descomenta para ejecutar pruebas
     std::string config_path;
     ReadConfig config_reader;
     std::vector<ServerSetUp> serverGroup;
