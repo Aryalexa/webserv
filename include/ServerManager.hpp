@@ -29,21 +29,40 @@ class ServerManager {
         ServerManager(const ServerManager &other);
         ServerManager &operator=(const ServerManager &other);
 
-        void _handle_new_connection(int listening_socket);
+        void _init_server_unit(ServerSetUp server);
+        int _get_client_server_fd(int client_socket) const;
+        
         void resolve_path(Request &request, int client_socket);
+        const Location* _find_best_location(const std::string& request_path, const std::vector<Location> &locations) const;
+        void _apply_location_config(
+            const Location *loc,
+            std::string &root,
+            std::string &index,
+            bool &autoindex,
+            std::string &full_path,
+            const std::string &request_path,
+            const std::string &request_method,
+            bool &used_alias
+        );
+        void _handle_directory_case(
+            std::string &full_path,
+            const std::string &request_path,
+            const std::string &index,
+            bool autoindex,
+            Request &request
+        );
+
         std::string prepare_response(int client_socket, const std::string& request);
         std::string prepare_error_response(int client_socket, int code);
-
-        const Location* _find_best_location(const std::string& request_path, const std::vector<Location> &locations) const;
-
-        bool _request_complete(const std::string& request);
-        bool _should_close_connection(const std::string& request, const std::string& response);
+        
+        
+        static void _handle_signal(int signal);
+        void _handle_new_connection(int listening_socket);
         void _handle_read(int client_sock);
         void _handle_write(int client_sock);
         void _cleanup_client(int client_sock);
-        static void _handle_signal(int signal);
-        void _init_server_unit(ServerSetUp server);
-        int _get_client_server_fd(int client_socket) const;
+        bool _request_complete(const std::string& request);
+        bool _should_close_connection(const std::string& request, const std::string& response);
 
     public:
         ServerManager();
