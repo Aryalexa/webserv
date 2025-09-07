@@ -4,6 +4,7 @@
 # include "../include/WebServ.hpp"
 
 
+// CLASS HttpException ////////////////////////////////////////////////////////
 class HttpException : public std::exception {
 private:
     int statusCode;  // Código de estado HTTP
@@ -80,5 +81,18 @@ namespace HttpStatusCode {
     const int NotExtended = 510;
     const int NetworkAuthenticationRequired = 511;
 }
+
+// CLASS HttpExceptionRedirect ////////////////////////////////////////////////////////
+
+class HttpExceptionRedirect : public HttpException {
+private:
+    std::string newLocation; // Nueva ubicación para la redirección 
+public:
+    HttpExceptionRedirect(int code, const std::string& location)
+        : HttpException(code), newLocation(location) {}
+    
+    const std::string& getLocation() const { return newLocation; }
+    virtual ~HttpExceptionRedirect() throw() {}
+};
 
 #endif

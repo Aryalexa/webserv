@@ -27,7 +27,7 @@ struct ResponseHeaders {
 class HttpResponse
 {
 private:
-	const Request &_request;
+	Request *_request;
 	ResponseStatus _status_line;
 	ResponseHeaders _headers;
 	std::string _body;
@@ -40,9 +40,9 @@ public:
 	static const std::string CRLF;
 	static const std::string version;
 
-	HttpResponse(const Request &request);
-	HttpResponse(const Request &request, int errorCode);
-	HttpResponse(const Request &request, int errorCode, const std::string errorPagePath);
+	HttpResponse(Request *request);
+	HttpResponse(int errorCode);
+	HttpResponse(int errorCode, const std::string &errorpage_or_location);
 	~HttpResponse();
 
 	std::string getStatusLine() const ;
@@ -52,12 +52,13 @@ public:
 	std::string getResponse() const;
 	void reset_all();
 	void generate_index(const Request& request);
-	void redirect();
-	void isOk();
-	void createOk();
-	void isNotFound();
+	void set_redirect_response(int code, const std::string& location);
+	void set_empty_response_alive(int code);
+	void set_empty_response_close(int code);
 
 	void handle_GET();
+
+	
 
 };
 

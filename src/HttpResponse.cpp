@@ -18,20 +18,20 @@ void HttpResponse::reset_all() {
     _headers.location = "";
 }
 
-HttpResponse::HttpResponse(const Request &request) : _request(request) {
+HttpResponse::HttpResponse(Request *request) : _request(request) {
   reset_all();
-  
-  if (request.getMethod() == "GET") 
+  assert(request != NULL);
+  if (request->getMethod() == "GET") 
     handle_GET();
-  else if (request.getMethod() == "POST") {
-    if  (request.getPath() == "www/upload") {
-      if (request.getBody().empty()) {
+  else if (request->getMethod() == "POST") {
+    if  (request->getPath() == "www/upload") {
+      if (request->getBody().empty()) {
         throw HttpException(HttpStatusCode::BadRequest);
       }
-      logDebug("[DEBUG] Body size: %i", request.getBody().size());
+      logDebug("[DEBUG] Body size: %i", request->getBody().size());
       Cgi cgi("cgi-bin/saveFile.py");
-      std::string cgi_output = cgi.run(request);
-      createOk();
+      std::string cgi_output = cgi.run(*request);
+      set_empty_response_alive(HttpStatusCode::Created);
     } else {
       _status_line = ResponseStatus(HttpStatusCode::OK);
       _body = "";
@@ -40,14 +40,14 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
       _headers.connection = "keep-alive";
     }
   }
-  else if (request.getMethod() == "DELETE" ) {
-    if(request.getQuery().empty()) {
-      isNotFound();
+  else if (request->getMethod() == "DELETE" ) {
+    if(request->getQuery().empty()) {
+      set_empty_response_close(HttpStatusCode::NotFound);
     } else {
-      std::cout << "[DEBUG] path: " << request.getPath() << std::endl;
+      std::cout << "[DEBUG] path: " << request->getPath() << std::endl;
       Cgi cgi("cgi-bin/deleteFile.py");
-      std::string cgi_output = cgi.run(request);
-      isOk();
+      std::string cgi_output = cgi.run(*request);
+      set_empty_response_alive(HttpStatusCode::OK);
     }
   }
   
@@ -97,7 +97,8 @@ std::string get_default_error_page(int errorCode) {
   return htmlResponse.str();
 }
 
-HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(request) {
+/** creates default error page */
+HttpResponse::HttpResponse(int errorCode) : _request(NULL) {
   _status_line = ResponseStatus(errorCode);
   _body = get_default_error_page(errorCode);
 
@@ -108,9 +109,20 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
 
 }
 
-HttpResponse::HttpResponse(const Request &request, int errorCode, const std::string errorPagePath) : _request(request) {
+/**
+ * Manages error pages and redirections
+  * If errorCode is a redirection (3xx), errorpage_or_location is the Location
+  * If errorCode is an error (4xx, 5xx), errorpage_or_location is the path to the error page
+  * If the error page does not exist, a default error page is generated
+ */
+HttpResponse::HttpResponse(int errorCode, const std::string &errorpage_or_location) : _request(NULL) {
+  if (errorCode >= 301 && errorCode <= 308) {
+    set_redirect_response(errorCode, errorpage_or_location);
+    return;
+  }
+  
   _status_line = ResponseStatus(errorCode);
-  std::string valid_path = errorPagePath;
+  std::string valid_path = errorpage_or_location;
   _body = read_file_binary(valid_path);
 
   _headers.content_type = "text/html";
@@ -171,12 +183,12 @@ std::string discover_content_type(const std::string &filename) {
 }
 
 void HttpResponse::handle_GET() {
-  std::string file_path = validate_path(_request.getPath());
+  std::string file_path = validate_path(_request->getPath());
   if (file_path == "www/photo-detail.html") {
     std::string html = read_file_text("www/photo-detail.html");
 
     Cgi cgi("cgi-bin/getFile.py");
-    std::string photo_block = cgi.run(_request);
+    std::string photo_block = cgi.run(*_request);
     html = replace_all(html, "<!--PHOTO_DETAIL-->", photo_block);
 
     _body = html;
@@ -189,7 +201,7 @@ void HttpResponse::handle_GET() {
     return;
   }
   if(file_path == "www/index.html") {
-    generate_index(_request);
+    generate_index(*_request);
     return;
   }
   // else
@@ -234,19 +246,17 @@ void HttpResponse::generate_index(const Request& request) {
     _status_line = ResponseStatus(code);
 }
 
-void HttpResponse::redirect() {
-    int code = HttpStatusCode::SeeOther;
+void HttpResponse::set_redirect_response(int code, const std::string& location) {
+    assert (code >= 300 && code < 400);
     _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
-    _headers.location = "/"; // Debes agregar este campo en tu struct de headers
-
+    _headers.location = location;
     _body = ""; // Sin cuerpo
 }
 
-void HttpResponse::createOk() {
-    int code = HttpStatusCode::Created;
+void HttpResponse::set_empty_response_alive(int code) {
     _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
@@ -254,22 +264,11 @@ void HttpResponse::createOk() {
     _body = ""; // Sin cuerpo
 }
 
-void HttpResponse::isOk() {
-    int code = HttpStatusCode::OK;
-    _status_line = ResponseStatus(code);
-    _headers.content_type = "text/html";
-    _headers.content_length = "0";
-    _headers.connection = "keep-alive";
-
-    _body = ""; // Sin cuerpo
-}
-
-void HttpResponse::isNotFound() {
-    int code = HttpStatusCode::NotFound;
+void HttpResponse::set_empty_response_close(int code) {
     _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "close";
-
     _body = ""; // Sin cuerpo
 }
+

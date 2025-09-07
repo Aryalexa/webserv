@@ -124,6 +124,11 @@ void	Request::setMethod(const std::string &method)
 
 void	Request::setPath(const std::string &new_path)
 {
+	if (new_path.empty()) {
+		logError("setPath: invalid path: <%s>", new_path.c_str());
+		this->_ret = 400;
+		throw HttpException(HttpStatusCode::BadRequest);
+	}
 	this->_path = new_path;
 }
 
@@ -249,24 +254,26 @@ std::string			Request::nextLine(const std::string &str, size_t& i)
 	return ret;
 }
 
-int					Request::readPath(const std::string& line, size_t i)
+int					Request::readPath(const std::string& line, size_t size)
 {
-	size_t	j;
+	size_t	n_spaces;
 
-	if ((j = line.find_first_not_of(' ', i)) == std::string::npos)
+	// skip spaces 
+	if ((n_spaces = line.find_first_not_of(' ', size)) == std::string::npos)
 	{
 		this->_ret = 400;
 		std::cerr << RED << "No PATH / HTTP version" << RESET << std::endl;
 		return 400;
 	}
-	if ((i = line.find_first_of(' ', j)) == std::string::npos)
+	// read path
+	if ((size = line.find_first_of(' ', n_spaces)) == std::string::npos)
 	{
 		this->_ret = 400;
 		std::cerr << RED << "No HTTP version" << RESET << std::endl;
 		return 400;
 	}
-	this->_path.assign(line, j, i - j);
-	return this->readVersion(line, i);
+	this->_path.assign(line, n_spaces, size - n_spaces);
+	return this->readVersion(line, size);
 }
 
 
