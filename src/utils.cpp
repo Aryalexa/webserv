@@ -200,15 +200,27 @@ std::string replace_all(const std::string& str, const std::string& from, const s
 }
 
 /**
- * check if 'path' matches 'prefix' exactly or as a directory (i.e., followed by a '/')
+ * check if 'path' matches 'prefix' exactly or as a directory
+ * los directorios deben coincidir y el path puede tener o no una barra al final
+ * Ejemplos:
+ * path /images matches prefix /images and /images/	
+ * path /img does not match prefix /images
+ * path /images/pic.jpg matches prefix /images/
  */
 bool path_matches(const std::string& prefix, const std::string& path) {
-    if (path == prefix)
+    // Normaliza: quita barra final de prefix y path si la tienen (excepto si son solo "/")
+    std::string norm_prefix = prefix;
+    std::string norm_path = path;
+	if (prefix == "/") return true; // root matches everything
+    if (norm_prefix.length() > 1 && norm_prefix[norm_prefix.length() - 1] == '/')
+        norm_prefix.erase(norm_prefix.length() - 1);
+    if (norm_path.length() > 1 && norm_path[norm_path.length() - 1] == '/')
+        norm_path.erase(norm_path.length() - 1);
+    // Coincidencia exacta
+    if (norm_path == norm_prefix)
         return true;
-    if (path.size() > prefix.size() 
-		&& path.compare(0, prefix.size(), prefix) == 0 
-		&& path[prefix.size()] == '/'
-	)
+    // path es subdirectorio o archivo dentro de prefix
+    if (norm_path.size() > norm_prefix.size() && norm_path.compare(0, norm_prefix.size(), norm_prefix) == 0 && norm_path[norm_prefix.size()] == '/')
         return true;
     return false;
 }

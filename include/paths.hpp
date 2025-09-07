@@ -7,7 +7,7 @@
 // Carpeta raíz para archivos estáticos
 const std::string WWW_ROOT = "www/";
 // Archivos por defecto
-const std::string DEFAULT_INDEX = "index.html";
+const std::string DEFAULT_INDEX = WWW_ROOT + "index.html";
 
 // WIP
 // Carpeta para scripts CGI

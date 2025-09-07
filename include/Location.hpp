@@ -41,7 +41,7 @@ class Location
 		void                                        setMaxBodySize(std::string token);
 		void                                        setMaxBodySize(unsigned long token);
 
-		const std::string                           &getPath() const;
+		const std::string                           &getPathLocation() const;
 		const std::string                           &getRootLocation() const;
 		const std::vector<short>                    &getMethods() const;
 		const bool                                  &getAutoindex() const;

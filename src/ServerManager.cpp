@@ -238,9 +238,28 @@ bool ServerManager::_request_complete(const std::string& request) {
     return body_size >= (size_t)content_length;
 }
 
+const Location* ServerManager::_find_best_location(const std::string& request_path, const std::vector<Location> &locations) const{
+    const Location* best_match = NULL;
+    size_t best_len = 0;
+
+    for (size_t i = 0; i < locations.size(); ++i) {
+        const Location& loc = locations[i];
+
+        std::string loc_path = loc.getPathLocation();
+        if (path_matches(loc_path, request_path)) {
+            // Preferimos el que tenga el prefix MÁS LARGO
+            if (loc_path.size() > best_len) {
+                best_match = &loc;
+                best_len = loc_path.size();
+            }
+        }
+    }
+    return best_match; // puede ser NULL si ninguno matchea
+}
+
 /**
  * Resolve the request path based on server configuration.
- * index, root, alias, etc.
+ * index, root, alias, return, etc.
  */
 void ServerManager::resolve_path(Request &request, int client_socket) {
     int server_fd = _get_client_server_fd(client_socket);
@@ -248,64 +267,106 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         logError("resolve_path: client_socket %d not found in _client_server_map!", client_socket);
         throw HttpException(HttpStatusCode::InternalServerError);
     }
+
     ServerSetUp &server = _servers_map[server_fd];
     std::string path = request.getPath();
-    if (path.empty() || path[0] != '/') { // todo: esto va aqui? bad request?
-        logError("Invalid path in request: %s", path.c_str());
-        throw HttpException(HttpStatusCode::BadRequest);
-    }
-    path = clean_path(path);
-    path = path_normalization(path);
-    // check locations
+    path = path_normalization(clean_path(path));
+    // server block config
     std::string root = server.getRoot();
     std::string index = server.getIndex();
     bool autoindex = server.getAutoindex();
-    for (size_t i = 0; i < server.getLocations().size(); ++i) {
-        Location loc = server.getLocations()[i];
-        if (loc.getPath() == path || path_matches(loc.getPath(), path)) {
-            logDebug("🍍🍍🍍 Location matched: %s", loc.getPath().c_str());
-            // methods
-            if (!loc.getMethods()[method_toEnum(request.getMethod())]) {
-                logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc.getPath().c_str());
-                throw HttpException(HttpStatusCode::MethodNotAllowed);
-            }
-            // root
-            if (loc.getRootLocation() != "") root = loc.getRootLocation();
-            // alias
-            if (loc.getAlias() != "") {
-                path = loc.getAlias() + path.substr(loc.getPath().size());
-                logDebug("🍍 Using alias. New path: %s", path.c_str());
-            }
-            // autoindex
-            if (loc.getAutoindex() != autoindex) autoindex = loc.getAutoindex();
-            // ...
-            break;
+    bool used_alias = false;
+
+    // 1. search best location
+    const Location *loc = _find_best_location(path, server.getLocations());
+    if (loc) {
+        logDebug("🍍🍍🍍 Location matched: %s", loc->getPathLocation().c_str());
+        
+        // 2. verify allowed methods
+        if (!loc->getMethods()[method_toEnum(request.getMethod())]) {
+            logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc->getPathLocation().c_str());
+            throw HttpException(HttpStatusCode::MethodNotAllowed);
         }
+        // 3. update config according to location 
+        if (loc->getRootLocation() != "")
+            root = loc->getRootLocation();
+        if (loc->getAlias() != "") { // ONLY ABSOLUTE ALIAS SUPPORTED
+            path = loc->getAlias() + path.substr(loc->getPathLocation().size());
+            used_alias = true;
+            logDebug("🍍 Using alias. New path: %s", path.c_str());
+        }
+        if (loc->getIndexLocation() != "")
+            index = loc->getIndexLocation();
+
+        if (loc->getAutoindex() != autoindex)
+            autoindex = loc->getAutoindex();
     }
-    if (root + path == WWW_ROOT && server.getIndex() != "" && !autoindex) {
-        path = server.getIndex();
-        logDebug("🍍🍍 Using server index as root: %s", root.c_str());
+    std::string full_path = used_alias ? path : root + path;
+
+    // 4. check a directory is requested
+    int type = ConfigFile::getTypePath(full_path);
+    if (type == F_DIRECTORY) {
+        logDebug("🍍 Path is a directory: %s", full_path.c_str());
+        // without trailing slash -> redirect
+        if (path[path.length() - 1] != '/') {
+            std::string new_location = path + "/";
+            logDebug("🍍 Path is a directory without trailing slash. Redirecting to %s", new_location.c_str());
+            throw HttpExceptionRedirect(HttpStatusCode::MovedPermanently, new_location);
+        }
+        // index
+        if (index != "") {
+            std::string index_path = full_path + index;
+            if (ConfigFile::getTypePath(index_path) == F_REGULAR_FILE) {
+                full_path = index_path;
+            } else { // index not found
+                if (autoindex) {
+                    // autoindex ON
+                    logDebug("🍍 Index file '%s' not found, but autoindex enabled", index_path.c_str());
+                    request.setAutoindex(true);
+                } else {
+                    // autoindex OFF: Queremos mostrar Index pero no existe → 403
+                    logError("Index file '%s' not found, and autoindex disabled", index_path.c_str());
+                    throw HttpException(HttpStatusCode::Forbidden);
+                }
+            }
+        } else { // no index defined
+            if (autoindex) {
+                // autoindex ON
+                logDebug("🍍 Autoindex enabled for directory %s", full_path.c_str());
+                request.setAutoindex(true);
+            }
+            else {
+                // No hay index y autoindex está deshabilitado → 403
+                throw HttpException(HttpStatusCode::Forbidden);
+            }
+        }        
     }
-    path = root + path;    
-    request.setPath(path);
+    // checking the file existence is done by the methods resolver.
+    request.setPath(full_path);
+ 
 }
 
 std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
     std::string response_str;
 
-    Request request(request_str);
-    logDebug("🍅 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
-    
     try {
+        Request request(request_str);
+        logDebug("🍅 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
         resolve_path(request, client_socket);
         logDebug("🍅 preparing response. client socket: %i. Query: %s %s",
             client_socket, request.getMethod().c_str(), request.getPath().c_str());
-        HttpResponse response(request);
+        HttpResponse response(&request);
+        response_str = response.getResponse();
+    } catch (const HttpExceptionRedirect &e) {
+        int code = e.getStatusCode();
+        std::string location = e.getLocation();
+        std::cout << "Redirection Exception caught: " << e.what() << ", Location: " << location << std::endl;
+        HttpResponse response(code, location);
         response_str = response.getResponse();
     } catch (const HttpException &e) {
         int code = e.getStatusCode();
         std::cout << "Excepción capturada: " << e.what() << std::endl;
-        response_str = prepare_error_response(client_socket, code, request);
+        response_str = prepare_error_response(client_socket, code);
         
     } catch (const std::exception &e) {
         // raise exc?
@@ -317,7 +378,7 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     return response_str;
 }
 
-std::string ServerManager::prepare_error_response(int client_socket, int code, const Request &request) {
+std::string ServerManager::prepare_error_response(int client_socket, int code) {
     logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
     std::string response_str;
     // first: try error page in config
@@ -325,14 +386,14 @@ std::string ServerManager::prepare_error_response(int client_socket, int code, c
     if (server_fd == -1) {
         logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
         // Devuelve una respuesta de error de servidor genérica
-        HttpResponse response(request, HttpStatusCode::InternalServerError);
+        HttpResponse response(HttpStatusCode::InternalServerError);
         return response.getResponse();
     }
     ServerSetUp &server = _servers_map[server_fd];
-    std::string err_page_path = "www"+ server.getPathErrorPage(code);
+    std::string err_page_path = server.getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
-        HttpResponse response(request, code, err_page_path);
+        HttpResponse response(code, WWW_ROOT + err_page_path);
         response_str = response.getResponse();
         return response_str;
     }
@@ -340,10 +401,12 @@ std::string ServerManager::prepare_error_response(int client_socket, int code, c
     // if not found, treat web server error
     std::string message = statusCodeString(code);
     switch (code) {
-        case HttpStatusCode::NotFound: // show error page
+        case HttpStatusCode::NotFound:
+        case HttpStatusCode::Forbidden:
             {
+                // show error page
                 logError("🍊 Acción: Mostrar página de error %d.", code);
-                HttpResponse response(request, code);
+                HttpResponse response(code);
                 response_str = response.getResponse();
             }
             break;

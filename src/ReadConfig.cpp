@@ -222,7 +222,7 @@ void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 		else if (tokens[i] == "autoindex" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (flag_autoindex)
-				throw ErrorException(AUTOINDEX_ERR);
+				throw ErrorException(AUTOINDEX_ERR ": is duplicated");
 			server.setAutoindex(tokens[++i]);
 			flag_autoindex = true;
 		}
@@ -234,14 +234,18 @@ void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 				throw  ErrorException(DIRECTIVE_ERR);
 		}
 	}
+	// set default values if not set
 	if (server.getRoot().empty())
 		server.setRoot("/;");
 	if (server.getHost() == 0)
 		server.setHost("localhost;");
-	if (server.getIndex().empty())
-		server.setIndex("index.html;");
-	if (!ConfigFile::isFileExistAndReadable(server.getRoot(), server.getIndex()))
+	// if (server.getIndex().empty())
+	// 	server.setIndex("index.html;");
+	
+	// check server index
+	if (!ConfigFile::isFileExistAndReadable(server.getRoot()+"/", server.getIndex()))
 		throw ErrorException(INDEX_CONFIG_ERR);	
+	
 	if (server.checkLocations())
 		throw ErrorException(LOCATION_DUP_ERR);
 	if (!server.getPort())

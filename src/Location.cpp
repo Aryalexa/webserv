@@ -98,7 +98,7 @@ void Location::setAutoindex(std::string token)
 	if (token == "on" || token == "off")
 		this->_autoindex = (token == "on");
 	else
-		throw ServerSetUp::ErrorException(AUTOINDEX_ERR);
+		throw ServerSetUp::ErrorException(AUTOINDEX_ERR ": must be 'on' or 'off'");
 }
 
 void Location::setIndexLocation(std::string token)
@@ -148,7 +148,7 @@ void Location::setMaxBodySize(unsigned long token)
 	this->_client_max_body_size = token;
 }
 
-const std::string &Location::getPath() const
+const std::string &Location::getPathLocation() const
 {
 	return (this->_path);
 }
