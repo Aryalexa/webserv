@@ -9,17 +9,17 @@ ServerManager::ServerManager()
 
 ServerManager::~ServerManager(){}
 
-void ServerManager::setup(const std::vector<ServerSetUp>& configs) {
+void ServerManager::setup(const std::vector<Server>& configs) {
 
     _servers = configs;
     
     for (size_t i = 0; i < _servers.size(); ++i) 
     {
-        ServerSetUp &server = _servers[i];
+        Server &server = _servers[i];
         bool reused = false;
 
         for (size_t j = 0; j < i; ++j) {
-            const ServerSetUp &prev = _servers[j];
+            const Server &prev = _servers[j];
             if (prev.getHost() == server.getHost() &&
                 prev.getPort() == server.getPort())
             {
@@ -46,7 +46,7 @@ void ServerManager::setup(const std::vector<ServerSetUp>& configs) {
         );
     }
 }
-void ServerManager::_init_server_unit(ServerSetUp server) {
+void ServerManager::_init_server_unit(Server server) {
     // listen
     int fd = server.getFd();
     if (listen(fd, BACKLOG_SIZE) < 0) {
@@ -367,7 +367,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         throw HttpException(HttpStatusCode::InternalServerError);
     }
 
-    ServerSetUp &server = _servers_map[server_fd];
+    Server &server = _servers_map[server_fd];
     std::string path = request.getPath();
     path = path_normalization(clean_path(path));
     
@@ -438,7 +438,7 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
         HttpResponse response(HttpStatusCode::InternalServerError);
         return response.getResponse();
     }
-    ServerSetUp &server = _servers_map[server_fd];
+    Server &server = _servers_map[server_fd];
     std::string err_page_path = server.getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());

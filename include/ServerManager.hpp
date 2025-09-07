@@ -5,12 +5,12 @@
 
 # define CONNECTION_TIMEOUT 5
 
-class ServerSetUp;
+class Server;
 
 class ServerManager {
     private:
-        std::vector<ServerSetUp>    _servers;
-        std::map<int,ServerSetUp>   _servers_map;
+        std::vector<Server>    _servers;
+        std::map<int,Server>   _servers_map;
         std::map<int, int>          _client_server_map; // Buffer for incoming requests
 
 
@@ -29,7 +29,7 @@ class ServerManager {
         ServerManager(const ServerManager &other);
         ServerManager &operator=(const ServerManager &other);
 
-        void _init_server_unit(ServerSetUp server);
+        void _init_server_unit(Server server);
         int _get_client_server_fd(int client_socket) const;
         
         void resolve_path(Request &request, int client_socket);
@@ -70,7 +70,7 @@ class ServerManager {
         ServerManager();
         ~ServerManager();
 
-        void setup(const std::vector<ServerSetUp>& servers);
+        void setup(const std::vector<Server>& servers);
         void init();
 };
 

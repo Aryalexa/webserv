@@ -25,11 +25,11 @@
 #define ERROR_PAGE_ERR "Error: Incorrect Error Page or Number of Error"
 #define SERVER_ERR "Error: Failed Server Validation"
 
-class ServerSetUp;
+class Server;
 
 class ReadConfig {
 	private:
-		std::vector<ServerSetUp>	_servers;
+		std::vector<Server>	_servers;
 		std::vector<std::string>	_server_config;
 		size_t						_nb_server;
 
@@ -44,9 +44,9 @@ class ReadConfig {
 		void                        removeWhiteSpace(std::string &content);
 		size_t                      findStartServer(size_t start, std::string &content);
 		size_t                      findEndServer(size_t start, std::string &content);
-		void                        createServer(std::string &config, ServerSetUp &server);
+		void                        createServer(std::string &config, Server &server);
 		void                        checkServers();
-		std::vector<ServerSetUp>	getServers();
+		std::vector<Server>			getServers();
 
 		public:
 		class ErrorException : public std::exception

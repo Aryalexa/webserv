@@ -53,7 +53,7 @@
 
 class Location;
 
-class ServerSetUp
+class Server
 {
 	private:
 		uint16_t						_port;
@@ -69,10 +69,10 @@ class ServerSetUp
 		struct sockaddr_in 				_server_address;
 
 	public:
-		ServerSetUp();
-		~ServerSetUp(); 
-		ServerSetUp(const ServerSetUp &other);
-		ServerSetUp &operator=(const ServerSetUp & rhs);
+		Server();
+		~Server(); 
+		Server(const Server &other);
+		Server &operator=(const Server & rhs);
 
 		void                                    		setServerName(std::string server_name);
 		void                                    		setHost(std::string parameter);

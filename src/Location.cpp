@@ -62,9 +62,9 @@ void Location::setPath(std::string token)
 void Location::setRootLocation(std::string token)
 {
 	if (ConfigFile::getTypePath(token) != F_DIRECTORY)
-		throw ServerSetUp::ErrorException(ERR_ROOT_LOCATION);
+		throw Server::ErrorException(ERR_ROOT_LOCATION);
 	if (Location::getAlias() != "")
-		throw ServerSetUp::ErrorException(ERR_ROOT_ALIAS);
+		throw Server::ErrorException(ERR_ROOT_ALIAS);
 	this->_root = token;
 }
 
@@ -89,7 +89,7 @@ void Location::setMethods(std::vector<std::string> methods)
 		else if (methods[i] == "HEAD")
 			this->_methods[M_HEAD] = 1;
 		else
-			throw ServerSetUp::ErrorException(ERR_SUPPORT_METHOD + methods[i]);
+			throw Server::ErrorException(ERR_SUPPORT_METHOD + methods[i]);
 	}
 }
 
@@ -98,7 +98,7 @@ void Location::setAutoindex(std::string token)
 	if (token == "on" || token == "off")
 		this->_autoindex = (token == "on");
 	else
-		throw ServerSetUp::ErrorException(AUTOINDEX_ERR ": must be 'on' or 'off'");
+		throw Server::ErrorException(AUTOINDEX_ERR ": must be 'on' or 'off'");
 }
 
 void Location::setIndexLocation(std::string token)
@@ -114,7 +114,7 @@ void Location::setReturn(std::string token)
 void Location::setAlias(std::string token)
 {
 	if (Location::getRootLocation() != "")
-		throw ServerSetUp::ErrorException(ERR_ROOT_ALIAS);
+		throw Server::ErrorException(ERR_ROOT_ALIAS);
 	this->_alias = token;
 }
 
@@ -135,10 +135,10 @@ void Location::setMaxBodySize(std::string token)
 	for (size_t i = 0; i < token.length(); i++)
 	{
 		if (token[i] < '0' || token[i] > '9')
-			throw ServerSetUp::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
+			throw Server::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
 	}
 	if (!ft_stoi(token))
-		throw ServerSetUp::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
+		throw Server::ErrorException(SYNTAX_ERR_CLIENT_MAX_SIZE);
 	body_size = ft_stoi(token);
 	this->_client_max_body_size = body_size;
 }
