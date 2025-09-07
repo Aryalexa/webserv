@@ -51,6 +51,8 @@ class ServerManager {
             bool autoindex,
             Request &request
         );
+        void _apply_redirection(const Location *loc);
+
 
         std::string prepare_response(int client_socket, const std::string& request);
         std::string prepare_error_response(int client_socket, int code);

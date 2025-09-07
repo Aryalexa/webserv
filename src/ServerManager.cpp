@@ -334,6 +334,28 @@ void ServerManager::_handle_directory_case(
     
 }
 
+void ServerManager::_apply_redirection(const Location *loc) {
+    if (loc && !loc->getReturn().empty()) {
+        std::string new_location = loc->getReturn();
+        throw HttpExceptionRedirect(HttpStatusCode::MovedPermanently, new_location);
+    }
+    // else if (server.hasReturn()) {...}
+
+    /*
+    NGINX does:
+
+    location /old {
+        return 301 /new;
+    }
+    location /other_old {
+        return 302 http://example.com/other_new;
+    }
+
+    --> o sea, con codigo de redireccion 
+    ademas!! acepta return en server block y nosotros no.
+    */
+}
+
 /**
  * Resolve the request path based on server configuration.
  * index, root, alias, return, etc.
@@ -358,6 +380,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     
     // 1. search best location and apply
     const Location *loc = _find_best_location(path, server.getLocations());
+    _apply_redirection(loc);
     _apply_location_config(loc, root, index, autoindex, full_path, path, request.getMethod(), used_alias);
 
     if (!used_alias)
