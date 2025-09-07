@@ -34,6 +34,7 @@ class ServerManager {
         std::string prepare_response(int client_socket, const std::string& request);
         std::string prepare_error_response(int client_socket, int code);
 
+        const Location* _find_best_location(const std::string& request_path, const std::vector<Location> &locations) const;
 
         bool _request_complete(const std::string& request);
         bool _should_close_connection(const std::string& request, const std::string& response);

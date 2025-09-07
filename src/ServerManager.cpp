@@ -238,9 +238,28 @@ bool ServerManager::_request_complete(const std::string& request) {
     return body_size >= (size_t)content_length;
 }
 
+const Location* ServerManager::_find_best_location(const std::string& request_path, const std::vector<Location> &locations) const{
+    const Location* best_match = NULL;
+    size_t best_len = 0;
+
+    for (size_t i = 0; i < locations.size(); ++i) {
+        const Location& loc = locations[i];
+
+        std::string loc_path = loc.getPathLocation();
+        if (path_matches(loc_path, request_path)) {
+            // Preferimos el que tenga el prefix MÁS LARGO
+            if (loc_path.size() > best_len) {
+                best_match = &loc;
+                best_len = loc_path.size();
+            }
+        }
+    }
+    return best_match; // puede ser NULL si ninguno matchea
+}
+
 /**
  * Resolve the request path based on server configuration.
- * index, root, alias, etc.
+ * index, root, alias, return, etc.
  */
 void ServerManager::resolve_path(Request &request, int client_socket) {
     int server_fd = _get_client_server_fd(client_socket);
@@ -248,10 +267,10 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         logError("resolve_path: client_socket %d not found in _client_server_map!", client_socket);
         throw HttpException(HttpStatusCode::InternalServerError);
     }
+
     ServerSetUp &server = _servers_map[server_fd];
     std::string path = request.getPath();
-    path = clean_path(path);
-    path = path_normalization(path);
+    path = path_normalization(clean_path(path));
     // server block config
     std::string root = server.getRoot();
     std::string index = "";
@@ -259,53 +278,63 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         index = server.getIndex();
     }
     bool autoindex = server.getAutoindex();
-    // locations
-    for (size_t i = 0; i < server.getLocations().size(); ++i) {
-        Location loc = server.getLocations()[i];
-        if (path_matches(loc.getPathLocation(), path)) {
-            logDebug("🍍🍍🍍 Location matched: %s", loc.getPathLocation().c_str());
-            // methods
-            if (!loc.getMethods()[method_toEnum(request.getMethod())]) {
-                logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc.getPathLocation().c_str());
-                throw HttpException(HttpStatusCode::MethodNotAllowed);
-            }
-            // root
-            if (loc.getRootLocation() != "") root = loc.getRootLocation();
-            // alias
-            if (loc.getAlias() != "") {
-                path = loc.getAlias() + path.substr(loc.getPathLocation().size());
-                logDebug("🍍 Using alias. New path: %s", path.c_str());
-            }
-            // check a directory is requested
-            if (ConfigFile::getTypePath(root + path) == F_DIRECTORY) {
-                // without trailing slash -> redirect
-                if (path[path.length() - 1] != '/') {
-                    std::string new_location = path + "/";
-                    logDebug("🍍 Path is a directory without trailing slash. Redirecting to %s", new_location.c_str());
-                    throw HttpExceptionRedirect(HttpStatusCode::MovedPermanently, new_location);
-                }
-                // index
-                if (loc.getIndexLocation() != "")
-                    index = loc.getIndexLocation();
-                
-                // autoindex: list files
-                if (loc.getAutoindex() != autoindex) autoindex = loc.getAutoindex();
-                
-                if (!autoindex && index == "")
-                    throw HttpException(HttpStatusCode::Forbidden); // No index, no autoindex -> 403
-            }
-            
-            break;
+    bool used_alias = false;
+    // 1. search best location
+    const Location *loc = _find_best_location(path, server.getLocations());
+    if (loc) {
+        logDebug("🍍🍍🍍 Location matched: %s", loc->getPathLocation().c_str());
+        
+        // 2. verify allowed methods
+        if (!loc->getMethods()[method_toEnum(request.getMethod())]) {
+            logError("Method %s not allowed in location %s", request.getMethod().c_str(), loc->getPathLocation().c_str());
+            throw HttpException(HttpStatusCode::MethodNotAllowed);
         }
+        // 3. update config according to location 
+        if (loc->getRootLocation() != "")
+            root = loc->getRootLocation();
+        if (loc->getAlias() != "") { // ONLY ABSOLUTE ALIAS SUPPORTED
+            path = loc->getAlias() + path.substr(loc->getPathLocation().size());
+            used_alias = true;
+            logDebug("🍍 Using alias. New path: %s", path.c_str());
+        }
+        if (loc->getIndexLocation() != "")
+            index = loc->getIndexLocation();
+
+        if (loc->getAutoindex() != autoindex)
+            autoindex = loc->getAutoindex();
     }
-    // solve index and autoindex
-    if (index != "") {
-        logDebug("🍍🍍 index: Using path + index: [%s] + [%s]", path.c_str(), index.c_str());
-        path = path + index;
+    std::string full_path = used_alias ? path : root + path;
+
+    // 4. check a directory is requested
+    int type = ConfigFile::getTypePath(full_path);
+    if (type == F_DIRECTORY) {
+        // without trailing slash -> redirect
+        if (path[path.length() - 1] != '/') {
+            std::string new_location = path + "/";
+            logDebug("🍍 Path is a directory without trailing slash. Redirecting to %s", new_location.c_str());
+            throw HttpExceptionRedirect(HttpStatusCode::MovedPermanently, new_location);
+        }
+        // index
+        if (index != "") {
+            std::string index_path = full_path + index;
+            if (ConfigFile::getTypePath(index_path) == F_REGULAR_FILE) {
+                full_path = index_path;
+            } else if (!autoindex) {
+                // autoindex OFF: Queremos mostrar Index pero no existe → 403
+                logError("Index file '%s' not found, and autoindex disabled", index_path.c_str());
+                throw HttpException(HttpStatusCode::Forbidden);
+            }
+        } else if (!autoindex) {
+            // No hay index y autoindex está deshabilitado → 403
+            throw HttpException(HttpStatusCode::Forbidden);
+        }
+        // Si llegamos aquí y autoindex=true, se resolverá más adelante
+        
     }
+    // checking the file existence is done by the methods resolver.
     
-    path = root + path;    
-    request.setPath(path);
+    request.setPath(full_path);
+ 
 }
 
 std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
