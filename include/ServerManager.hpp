@@ -7,6 +7,18 @@
 
 class Server;
 
+struct ClientRequest {
+    std::string buffer;       // Acumula los datos recibidos
+    size_t max_size;          // client_max_body_size de la location / server
+    size_t current_size;      // total bytes recibidos hasta ahora
+    size_t content_length;    // Content-Length declarado por el cliente
+    std::string request_path; // Para saber qué location aplica
+    bool headers_parsed;      // Si ya leíste los headers
+
+    ClientRequest();
+    void append_to_buffer(std::string str);
+};
+
 class ServerManager {
     private:
         std::vector<Server>    _servers;
@@ -21,7 +33,7 @@ class ServerManager {
         int _max_fd; // Maximum file descriptor for select
 
         // Buffers
-        std::map<int, std::string> _read_buffer;
+        std::map<int, ClientRequest> _read_requests;
         std::map<int, std::string> _write_buffer;
         std::map<int, size_t> _bytes_sent;
 

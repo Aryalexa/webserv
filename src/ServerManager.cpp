@@ -2,6 +2,15 @@
 
 bool ServerManager::_running = true; // Initialize the static running variable
 
+ClientRequest::ClientRequest()
+  : buffer(""), max_size(0), current_size(0), content_length(0), request_path(""), headers_parsed(false)
+{}
+
+void ClientRequest::append_to_buffer(std::string str) {
+    buffer += str;
+    current_size += str.size();
+}
+
 ServerManager::ServerManager()
   : _max_fd(0)
 {
@@ -12,6 +21,7 @@ ServerManager::~ServerManager(){}
 void ServerManager::setup(const std::vector<Server>& configs) {
 
     _servers = configs;
+    logDebug("Setting up %zu server(s)", _servers.size());
     
     for (size_t i = 0; i < _servers.size(); ++i) 
     {
@@ -109,7 +119,7 @@ void ServerManager::init()
             }
         }
     }
-    logInfo("\nServer shutting down...");
+    logInfo("\nServers shutting down...");
 }
 
 void ServerManager::_handle_new_connection(int listening_socket) {
@@ -130,7 +140,7 @@ void ServerManager::_handle_new_connection(int listening_socket) {
     if (client_sock > _max_fd) _max_fd = client_sock;
 
     _client_server_map[client_sock] = listening_socket; // Map client socket to server socket
-    _read_buffer[client_sock] = ""; // Initialize read buffer for the new client
+    _read_requests[client_sock] = ClientRequest(); // Initialize Request object for the new client
     _write_buffer[client_sock] = ""; // Initialize write buffer for the new client
     _bytes_sent[client_sock] = 0; // Initialize bytes sent for the new client
     logInfo("🐠 New connection accepted on socket %d. Listening socket: %d", client_sock, listening_socket);
@@ -149,11 +159,11 @@ void ServerManager::_handle_write(int client_sock) {
     }
     _bytes_sent[client_sock] += n;
     if (_bytes_sent[client_sock] == _write_buffer[client_sock].size()) {
-       if (_should_close_connection(_read_buffer[client_sock], _write_buffer[client_sock])) {
+       if (_should_close_connection(_read_requests[client_sock].buffer, _write_buffer[client_sock])) {
             _cleanup_client(client_sock);
         } else {
             // Mantener la conexión: limpiar buffers y volver a modo lectura
-            _read_buffer[client_sock].clear();
+            _read_requests[client_sock] = ClientRequest(); // Reset the Request object
             _write_buffer[client_sock].clear();
             _bytes_sent[client_sock] = 0;
             FD_CLR(client_sock, &_write_fds);
@@ -181,7 +191,7 @@ void ServerManager::_handle_read(int client_sock) {
     logInfo("🐟 Client connected on socket %d", client_sock);
 
     while ((n = recv(client_sock, buffer, sizeof(buffer), 0)) > 0) {
-        _read_buffer[client_sock].append(buffer, n);
+        _read_requests[client_sock].append_to_buffer(std::string(buffer, n));
     }
     if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
         logError("Failed to receive data from client");
@@ -190,9 +200,9 @@ void ServerManager::_handle_read(int client_sock) {
     }
 
     if (n == 0) {
-        if (_request_complete(_read_buffer[client_sock])) {
+        if (_request_complete(_read_requests[client_sock].buffer)) {
             logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
-            _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
+            _write_buffer[client_sock] = prepare_response(client_sock, _read_requests[client_sock].buffer);
         } else {
             logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
             _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>400 Bad Request</h1>";
@@ -202,12 +212,12 @@ void ServerManager::_handle_read(int client_sock) {
         return;
     }
 
-    if (!_request_complete(_read_buffer[client_sock])) {
+    if (!_request_complete(_read_requests[client_sock].buffer)) {
         logInfo("🐠 Partial request received from client socket %d, waiting for more data...", client_sock);
         return;
     }
     logInfo("🐠 Request complete from client socket %d", client_sock);
-    _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
+    _write_buffer[client_sock] = prepare_response(client_sock, _read_requests[client_sock].buffer);
     _bytes_sent[client_sock] = 0;
     FD_SET(client_sock, &_write_fds);
 }
@@ -468,8 +478,13 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
             exit(2);
             break;
         default:
-            logError("Error no gestionado: %s. hacer algo!.", message.c_str());
-            exit(2);
+            {
+                logError("Error no gestionado: %s. hacer algo!.", message.c_str());
+                // show error page
+                logError("🍊 Acción: Mostrar página de error %d.", code);
+                HttpResponse response(code);
+                response_str = response.getResponse();
+            }
             break;
     }
     return response_str;
@@ -480,7 +495,7 @@ void ServerManager::_cleanup_client(int client_sock) {
     FD_CLR(client_sock, &_write_fds);
     close(client_sock);
     _client_server_map.erase(client_sock);
-    _read_buffer.erase(client_sock);
+    _read_requests.erase(client_sock);
     _write_buffer.erase(client_sock);
     _bytes_sent.erase(client_sock);
     logInfo("🐟 Client socket %d cleaned up", client_sock);

@@ -28,6 +28,7 @@ int ReadConfig::createServerGroup(const std::string &config_file)
 	{
 		Server server;
 		createServer(this->_server_config[i], server);
+		logDebug("🍉 Server #%i created", i);
 		this->_servers.push_back(server);
 	}
 	if (this->_nb_server > 1)
@@ -253,7 +254,6 @@ void ReadConfig::createServer(std::string &config, Server &server)
 	server.setErrorPages(error_codes);
 	if (!server.isValidErrorPages())
 		throw ErrorException(ERROR_PAGE_ERR);
-	logDebug("🍊 Servidor creado en %s:%d con root %s", inet_ntoa(*(in_addr*)&server.getHost()), server.getPort(), server.getRoot().c_str());
 }
 
 void ReadConfig::checkServers()

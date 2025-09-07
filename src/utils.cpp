@@ -158,6 +158,9 @@ int     ft_stoi(std::string str)
 	return (res);
 }
 
+/**
+ * check if 'word' is a substring of 'str'
+ */
 bool in_str(const std::string &word, const std::string &str) {
 	return str.find(word) != std::string::npos;
 }
