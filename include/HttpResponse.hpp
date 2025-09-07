@@ -11,7 +11,7 @@ struct ResponseStatus {
     std::string message;
 
 	ResponseStatus();
-	ResponseStatus(int code, const std::string& message);
+	ResponseStatus(int code);
 };
 
 struct ResponseHeaders {
@@ -50,6 +50,7 @@ public:
 	std::string getBody() const ;
 	std::string toString() const ;
 	std::string getResponse() const;
+	void reset_all();
 	void generate_index(const Request& request);
 	void redirect();
 	void isOk();
