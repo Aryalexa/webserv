@@ -299,7 +299,7 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     try {
         resolve_path(request, client_socket);
         logDebug("🍅 preparing response. client socket: %i. Query: %s %s",
-            client_socket, request.getMethod().c_str(),request.getPath().c_str());
+            client_socket, request.getMethod().c_str(), request.getPath().c_str());
         HttpResponse response(request);
         response_str = response.getResponse();
     } catch (const HttpException &e) {

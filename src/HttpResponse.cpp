@@ -5,44 +5,40 @@ const std::string HttpResponse::version = "HTTP/1.1";
 
 ResponseStatus::ResponseStatus()
         : code(0), message("Empty") {}
-ResponseStatus::ResponseStatus(int code, const std::string& message)
-        : code(code), message(message) {}
+ResponseStatus::ResponseStatus(int code)
+        : code(code), message(statusCodeString(code)) {}
+
+void HttpResponse::reset_all() {
+    _status_line = ResponseStatus(0);
+    _body = "";
+    _headers.content_type = "";
+    _headers.content_length = "0";
+    _headers.allow = "";
+    _headers.connection = "";
+    _headers.location = "";
+}
 
 HttpResponse::HttpResponse(const Request &request) : _request(request) {
-  _status_line = ResponseStatus(0, "");
-  _body = "";
-  _headers.content_type = "";
-  _headers.content_length = "0";
-  _headers.allow = "";
-  _headers.connection = "";
-  _headers.location = "";
-
-  /*
-    - Find the correct resource or action
-    - Check HTTP method rules
-    - Apply redirections or aliases
-    - Locate the file or resource
-    - Consider CGI (dynamic content)
-    - Determine the response status
-    */
-
-  if (request.getMethod() == "POST" && request.getBody().empty()) {
-      // Body vacío: error 400
-      _status_line = ResponseStatus(HttpStatusCode::MethodNotAllowed, "Method Not Allowed");
+  reset_all();
+  
+  if (request.getMethod() == "GET") 
+    handle_GET();
+  else if (request.getMethod() == "POST") {
+    if  (request.getPath() == "www/upload") {
+      if (request.getBody().empty()) {
+        throw HttpException(HttpStatusCode::BadRequest);
+      }
+      logDebug("[DEBUG] Body size: %i", request.getBody().size());
+      Cgi cgi("cgi-bin/saveFile.py");
+      std::string cgi_output = cgi.run(request);
+      createOk();
+    } else {
+      _status_line = ResponseStatus(HttpStatusCode::OK);
       _body = "";
       _headers.content_type = "text/html";
       _headers.content_length = to_string(_body.size());
-      _headers.allow = "GET";
-      _headers.connection = "close";
-      return;
-  }
-  else if (request.getMethod() == "GET") 
-    handle_GET();
-  else if (request.getMethod() == "POST" && request.getPath() == "www/upload") {
-    logDebug("[DEBUG] Body size: %i", request.getBody().size());
-    Cgi cgi("cgi-bin/saveFile.py");
-    std::string cgi_output = cgi.run(request);
-    createOk();
+      _headers.connection = "keep-alive";
+    }
   }
   else if (request.getMethod() == "DELETE" ) {
     if(request.getQuery().empty()) {
@@ -56,13 +52,14 @@ HttpResponse::HttpResponse(const Request &request) : _request(request) {
   }
   
   if (_status_line.code == 0) {
-    _status_line = ResponseStatus(HttpStatusCode::MethodNotAllowed, "Method Not Allowed");
-    _body = "";
-    _headers.content_type = "text/html";
-    _headers.content_length = to_string(_body.size());
-    _headers.connection = "keep-alive";
-}
+    throw HttpException(HttpStatusCode::NotImplemented);
+  }
 
+  /**
+   * Tu servidor no soporta METHOD en absoluto
+   * devolver 501
+   * "Método no implementado por el servidor".
+   */
   //añadido _headers.location.empty() porque si es una redireccion , el body esta vacio 
   //(_body.empty() && _headers.location.empty()) quito ambos porque delete no tiene ni location ni body
   // if (_headers.content_type.empty() || _headers.connection.empty()
@@ -101,7 +98,7 @@ std::string get_default_error_page(int errorCode) {
 }
 
 HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(request) {
-  _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
+  _status_line = ResponseStatus(errorCode);
   _body = get_default_error_page(errorCode);
 
   _headers.content_type = "text/html";
@@ -112,7 +109,7 @@ HttpResponse::HttpResponse(const Request &request, int errorCode) : _request(req
 }
 
 HttpResponse::HttpResponse(const Request &request, int errorCode, const std::string errorPagePath) : _request(request) {
-  _status_line = ResponseStatus(errorCode, statusCodeString(errorCode));
+  _status_line = ResponseStatus(errorCode);
   std::string valid_path = errorPagePath;
   _body = read_file_binary(valid_path);
 
@@ -172,6 +169,7 @@ std::string discover_content_type(const std::string &filename) {
 
   return content_type;
 }
+
 void HttpResponse::handle_GET() {
   std::string file_path = validate_path(_request.getPath());
   if (file_path == "www/photo-detail.html") {
@@ -187,7 +185,7 @@ void HttpResponse::handle_GET() {
     _headers.connection = "keep-alive";
 
     int code = HttpStatusCode::OK;
-    _status_line = ResponseStatus(code,statusCodeString(code) );
+    _status_line = ResponseStatus(code);
     return;
   }
   if(file_path == "www/index.html") {
@@ -202,7 +200,7 @@ void HttpResponse::handle_GET() {
   _headers.connection = "keep-alive";
 
   int code = HttpStatusCode::OK;
-  _status_line = ResponseStatus(code,statusCodeString(code) );
+  _status_line = ResponseStatus(code);
   
 }
 
@@ -233,12 +231,12 @@ void HttpResponse::generate_index(const Request& request) {
     _headers.connection = "keep-alive";
 
     int code = HttpStatusCode::OK;
-    _status_line = ResponseStatus(code,statusCodeString(code) );
+    _status_line = ResponseStatus(code);
 }
 
 void HttpResponse::redirect() {
     int code = HttpStatusCode::SeeOther;
-    _status_line = ResponseStatus(code, statusCodeString(code));
+    _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
@@ -249,7 +247,7 @@ void HttpResponse::redirect() {
 
 void HttpResponse::createOk() {
     int code = HttpStatusCode::Created;
-    _status_line = ResponseStatus(code, statusCodeString(code));
+    _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
@@ -258,7 +256,7 @@ void HttpResponse::createOk() {
 
 void HttpResponse::isOk() {
     int code = HttpStatusCode::OK;
-    _status_line = ResponseStatus(code, statusCodeString(code));
+    _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "keep-alive";
@@ -268,7 +266,7 @@ void HttpResponse::isOk() {
 
 void HttpResponse::isNotFound() {
     int code = HttpStatusCode::NotFound;
-    _status_line = ResponseStatus(code, statusCodeString(code));
+    _status_line = ResponseStatus(code);
     _headers.content_type = "text/html";
     _headers.content_length = "0";
     _headers.connection = "close";

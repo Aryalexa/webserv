@@ -290,6 +290,9 @@ int					Request::readVersion(const std::string& line, size_t i)
 	return (this->checkMethod());
 }
 
+/**
+ * Check if the method is valid
+ */
 int					Request::checkMethod()
 {
 	for (size_t i = 0; i < this->methods.size(); i++)
