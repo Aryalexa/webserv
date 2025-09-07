@@ -273,12 +273,10 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     path = path_normalization(clean_path(path));
     // server block config
     std::string root = server.getRoot();
-    std::string index = "";
-    if (path == "/" && server.getIndex() != "") {
-        index = server.getIndex();
-    }
+    std::string index = server.getIndex();
     bool autoindex = server.getAutoindex();
     bool used_alias = false;
+
     // 1. search best location
     const Location *loc = _find_best_location(path, server.getLocations());
     if (loc) {
@@ -308,6 +306,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     // 4. check a directory is requested
     int type = ConfigFile::getTypePath(full_path);
     if (type == F_DIRECTORY) {
+        logDebug("🍍 Path is a directory: %s", full_path.c_str());
         // without trailing slash -> redirect
         if (path[path.length() - 1] != '/') {
             std::string new_location = path + "/";
@@ -319,20 +318,30 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
             std::string index_path = full_path + index;
             if (ConfigFile::getTypePath(index_path) == F_REGULAR_FILE) {
                 full_path = index_path;
-            } else if (!autoindex) {
-                // autoindex OFF: Queremos mostrar Index pero no existe → 403
-                logError("Index file '%s' not found, and autoindex disabled", index_path.c_str());
+            } else { // index not found
+                if (autoindex) {
+                    // autoindex ON
+                    logDebug("🍍 Index file '%s' not found, but autoindex enabled", index_path.c_str());
+                    request.setAutoindex(true);
+                } else {
+                    // autoindex OFF: Queremos mostrar Index pero no existe → 403
+                    logError("Index file '%s' not found, and autoindex disabled", index_path.c_str());
+                    throw HttpException(HttpStatusCode::Forbidden);
+                }
+            }
+        } else { // no index defined
+            if (autoindex) {
+                // autoindex ON
+                logDebug("🍍 Autoindex enabled for directory %s", full_path.c_str());
+                request.setAutoindex(true);
+            }
+            else {
+                // No hay index y autoindex está deshabilitado → 403
                 throw HttpException(HttpStatusCode::Forbidden);
             }
-        } else if (!autoindex) {
-            // No hay index y autoindex está deshabilitado → 403
-            throw HttpException(HttpStatusCode::Forbidden);
-        }
-        // Si llegamos aquí y autoindex=true, se resolverá más adelante
-        
+        }        
     }
     // checking the file existence is done by the methods resolver.
-    
     request.setPath(full_path);
  
 }

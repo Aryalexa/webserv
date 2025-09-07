@@ -51,7 +51,8 @@ public:
 	std::string toString() const ;
 	std::string getResponse() const;
 	void reset_all();
-	void generate_index(const Request& request);
+	void generate_webindex(const Request& request);
+	void generate_autoindex(const Request& request);
 	void set_redirect_response(int code, const std::string& location);
 	void set_empty_response_alive(int code);
 	void set_empty_response_close(int code);

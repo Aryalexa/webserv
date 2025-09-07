@@ -263,7 +263,7 @@ void ServerSetUp::setLocation(std::string path, std::vector<std::string> token) 
         else if (token[i] == AUTOINDEX && (i + 1) < token.size())
         {
             if (path == CGI_BIN_PATH)
-                throw ErrorException(AUTOINDEX_ERR);
+                throw ErrorException(AUTOINDEX_ERR ": cannot be set for cgi-bin");
             if (flag_autoindex)
                 throw ErrorException(AUTOINDEX_DUP_ERR);
             checkSemicolon(token[++i]);
@@ -351,8 +351,8 @@ void ServerSetUp::setLocation(std::string path, std::vector<std::string> token) 
         else if (i < token.size())
             throw ErrorException(TOKEN_ERR ": " + token[i] + "(unknown token)");
     }
-    if (new_location.getPathLocation() != CGI_BIN_PATH && new_location.getIndexLocation().empty())
-        new_location.setIndexLocation(this->_index);
+    // if (new_location.getPathLocation() != CGI_BIN_PATH && new_location.getIndexLocation().empty())
+    //     new_location.setIndexLocation(this->_index);
     if (!flag_max_size)
         new_location.setMaxBodySize(this->_client_max_body_size);
     valid = isValidLocation(new_location);

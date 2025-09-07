@@ -183,6 +183,11 @@ std::string discover_content_type(const std::string &filename) {
 }
 
 void HttpResponse::handle_GET() {
+  if (_request->getAutoindex()) {
+    generate_autoindex(*_request);
+    return;
+  }
+
   std::string file_path = validate_path(_request->getPath());
   if (file_path == "www/photo-detail.html") {
     std::string html = read_file_text("www/photo-detail.html");
@@ -200,8 +205,8 @@ void HttpResponse::handle_GET() {
     _status_line = ResponseStatus(code);
     return;
   }
-  if(file_path == "www/index.html") {
-    generate_index(*_request);
+  if (file_path == DEFAULT_INDEX) {
+    generate_webindex(*_request);
     return;
   }
   // else
@@ -220,8 +225,38 @@ std::string HttpResponse::getResponse() const {
   return toString();
 }
 
-void HttpResponse::generate_index(const Request& request) {
-    std::ifstream file("www/index.html");
+void HttpResponse::generate_autoindex(const Request& request) {
+  logDebug("🍍 Generating autoindex for path: %s", request.getPath().c_str());
+  std::string path = request.getPath();
+  std::vector<std::string> entries;
+  DIR *dir = opendir((path).c_str());
+  if (!dir)
+      throw HttpException(HttpStatusCode::InternalServerError);
+  struct dirent *entry;
+  while ((entry = readdir(dir)) != NULL) {
+      if (std::string(entry->d_name) == ".") continue;
+      entries.push_back(entry->d_name);
+  }
+  closedir(dir);
+
+  std::ostringstream html;
+  html << "<html><body><h1>Index" << "</h1><ul>";
+  for (size_t i = 0; i < entries.size(); ++i)
+      html << "<li><a href='" << entries[i] << "'>" << entries[i] << "</a></li>";
+  html << "</ul></body></html>";
+
+  _body = html.str();
+  _headers.content_type = "text/html";
+  _headers.content_length = to_string(_body.size());
+  _headers.connection = "keep-alive";
+
+  int code = HttpStatusCode::OK;
+  _status_line = ResponseStatus(code);
+}
+
+void HttpResponse::generate_webindex(const Request& request) {
+    assert(request.getPath() == DEFAULT_INDEX);
+    std::ifstream file(request.getPath());
     if (!file.is_open()) {
       throw HttpException(HttpStatusCode::NotFound);
     }

@@ -222,7 +222,7 @@ void ReadConfig::createServer(std::string &config, ServerSetUp &server)
 		else if (tokens[i] == "autoindex" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (flag_autoindex)
-				throw ErrorException(AUTOINDEX_ERR);
+				throw ErrorException(AUTOINDEX_ERR ": is duplicated");
 			server.setAutoindex(tokens[++i]);
 			flag_autoindex = true;
 		}

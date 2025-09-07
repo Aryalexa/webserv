@@ -19,7 +19,7 @@ std::vector<std::string>		Request::init_methods()
 std::vector<std::string>	Request::methods = Request::init_methods();
 
 Request::Request(const std::string& str) :
-	_method (""), _version(""), _ret(200), _body(""), _port(80), _path(""), _query(""), _raw(str)
+	_method (""), _version(""), _ret(200), _body(""), _port(80), _path(""), _query(""), _raw(str), _autoindex(false)
 {
 	this->resetHeaders();
 	this->parse(str);
@@ -97,6 +97,10 @@ const std::list<std::pair<std::string, float> >&	Request::getLang() const
 	return this->_lang;
 }
 
+const bool&	Request::getAutoindex() const
+{
+	return this->_autoindex;
+}
 
 /*** SETTERS ***/
 
@@ -130,6 +134,11 @@ void	Request::setPath(const std::string &new_path)
 		throw HttpException(HttpStatusCode::BadRequest);
 	}
 	this->_path = new_path;
+}
+
+void	Request::setAutoindex(bool ai)
+{
+	this->_autoindex = ai;
 }
 
 void				Request::resetHeaders()

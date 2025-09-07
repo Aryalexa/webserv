@@ -98,7 +98,7 @@ void Location::setAutoindex(std::string token)
 	if (token == "on" || token == "off")
 		this->_autoindex = (token == "on");
 	else
-		throw ServerSetUp::ErrorException(AUTOINDEX_ERR);
+		throw ServerSetUp::ErrorException(AUTOINDEX_ERR ": must be 'on' or 'off'");
 }
 
 void Location::setIndexLocation(std::string token)

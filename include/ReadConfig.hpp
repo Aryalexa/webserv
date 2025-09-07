@@ -18,7 +18,7 @@
 #define CLIENT_ERR "Error: Client_max_body_size is Duplicated"
 #define SERVER_NAME_ERR "Error: Server Name is Duplicated"
 #define INDEX_ERR "Error: Index is Duplicated"
-#define AUTOINDEX_ERR "Error: Autoindex of Server is Duplicated"
+#define AUTOINDEX_ERR "Error: Autoindex error"
 #define DIRECTIVE_ERR "Error: Unsupported Directive"
 #define INDEX_CONFIG_ERR "Error: Index from Config File Unreadable"
 #define LOCATION_DUP_ERR "Error: Location is Duplicated"
