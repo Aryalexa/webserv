@@ -184,14 +184,89 @@ bool ServerManager::_should_close_connection(const std::string& request, const s
     }
     return closing;
 }
+
+void ServerManager::parse_headers(int client_sock, ClientRequest &client_request) {
+    size_t header_end = client_request.buffer.find("\r\n\r\n");
+    if (header_end == std::string::npos)
+        return; // Headers incompletos
+    
+    // Extraer Path y Content-Length si existe
+    std::string headers = client_request.buffer.substr(0, header_end);
+    std::vector<std::string> lines = split(headers, '\n');
+    for (size_t i = 0; i < lines.size(); ++i) {
+        std::string line = lines[i];
+        if (line.back() == '\r')
+            line.pop_back(); // Remove trailing \r
+        if (i == 0) {
+            // Primera línea: método y path
+            size_t method_end = line.find(' ');
+            size_t path_end = line.find(' ', method_end + 1);
+            if (method_end != std::string::npos && path_end != std::string::npos) {
+                std::string method = line.substr(0, method_end);
+                std::string path = line.substr(method_end + 1, path_end - method_end - 1);
+                client_request.request_path = path;
+                logDebug("🍍 Parsed request method: %s, path: %s", method.c_str(), path.c_str());
+            }
+        } else {
+            // Otras líneas: headers
+            size_t colon_pos = line.find(':');
+            if (colon_pos != std::string::npos) {
+                std::string key = line.substr(0, colon_pos);
+                std::string value = line.substr(colon_pos + 1);
+                strip(key, ' ');
+                strip(value, ' ');
+                if (key == "Content-Length") {
+                    client_request.content_length = atoi(value.c_str());
+                    logDebug("🍍 Parsed Content-Length: %zu", client_request.content_length);
+                }
+            }
+        }
+    }
+    // Obtener Location correspondiente y fijar max_size = location.client_max_body_size
+    int server_fd = _get_client_server_fd(client_sock);
+    if (server_fd < 0) {
+        logError("Could not find server for client socket %d", client_sock);
+        exit(1);
+    }
+    Server &server = _servers_map[server_fd];
+    const std::vector<Location> &locations = server.getLocations();
+    const Location* loc = _find_best_location(client_request.request_path, locations);
+    if (loc) {
+        client_request.max_size = loc->getMaxBodySize();
+        logDebug("🍍 Applied client_max_body_size: %zu", client_request.max_size);
+    } else {
+        client_request.max_size = server.getClientMaxBodySize();
+        logDebug("🍍 Applied server client_max_body_size: %zu", client_request.max_size);
+    }
+    assert(client_request.max_size != 0);
+}
+
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
 
+    ClientRequest &cur_request = _read_requests[client_sock];
+
     while ((n = recv(client_sock, buffer, sizeof(buffer), 0)) > 0) {
-        _read_requests[client_sock].append_to_buffer(std::string(buffer, n));
+        cur_request.append_to_buffer(std::string(buffer, n));
+        if (!cur_request.headers_parsed) {
+            parse_headers(client_sock, cur_request);
+            cur_request.headers_parsed = true;
+        }
+        if (cur_request.max_size > 0 && cur_request.current_size > cur_request.max_size) {
+            logError("Client on socket %d exceeded max body size (%zu > %zu). Sending 413.", client_sock, cur_request.current_size, cur_request.max_size);
+            _write_buffer[client_sock] =
+                "HTTP/1.1 413 Payload Too Large\r\n"
+                "Content-Type: text/html\r\n"
+                "Connection: close\r\n\r\n"
+                "<h1>413 Payload Too Large</h1>";
+            _bytes_sent[client_sock] = 0;
+            FD_CLR(client_sock, &_read_fds);
+            FD_SET(client_sock, &_write_fds);
+            return;
+        }
     }
     if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
         logError("Failed to receive data from client");
@@ -200,45 +275,46 @@ void ServerManager::_handle_read(int client_sock) {
     }
 
     if (n == 0) {
-        if (_request_complete(_read_requests[client_sock].buffer)) {
+        if (_request_complete(_read_requests[client_sock])) {
             logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
             _write_buffer[client_sock] = prepare_response(client_sock, _read_requests[client_sock].buffer);
         } else {
             logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
-            _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>400 Bad Request</h1>";
+            _write_buffer[client_sock] =
+                "HTTP/1.1 400 Bad Request\r\n"
+                "Content-Type: text/html\r\n"
+                "Connection: close\r\n\r\n"
+                "<h1>400 Bad Request</h1>";
         }
         _bytes_sent[client_sock] = 0;
+        FD_CLR(client_sock, &_read_fds);
         FD_SET(client_sock, &_write_fds);
         return;
     }
 
-    if (!_request_complete(_read_requests[client_sock].buffer)) {
+    if (!_request_complete(_read_requests[client_sock])) {
         logInfo("🐠 Partial request received from client socket %d, waiting for more data...", client_sock);
         return;
     }
     logInfo("🐠 Request complete from client socket %d", client_sock);
     _write_buffer[client_sock] = prepare_response(client_sock, _read_requests[client_sock].buffer);
     _bytes_sent[client_sock] = 0;
+    FD_CLR(client_sock, &_read_fds);
     FD_SET(client_sock, &_write_fds);
 }
 
-bool ServerManager::_request_complete(const std::string& request) {
+bool ServerManager::_request_complete(const ClientRequest& clrequest) {
+    const std::string& request = clrequest.buffer;
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos)
         return false; // Headers incompletos
   
-    size_t cl_pos = request.find("Content-Length:");
-    if (cl_pos == std::string::npos)
-        return true; // No hay body, solo headers
-
-    size_t cl_end = request.find("\r\n", cl_pos);
-    std::string cl_str = request.substr(cl_pos + 15, cl_end - (cl_pos + 15));
-    cl_str.erase(0, cl_str.find_first_not_of(" \t"));
-    cl_str.erase(cl_str.find_last_not_of(" \t") + 1);
-    int content_length = atoi(cl_str.c_str());
+    int content_length = clrequest.content_length;
+    if (clrequest.headers_parsed && content_length == 0)
+        return true; // No hay body esperado
 
     size_t body_start = header_end + 4;
-    size_t body_size = request.size() - body_start;
+    size_t body_size = clrequest.current_size - body_start;
 
     std::cout << "[DEBUG] header_end: " << header_end << std::endl;
     std::cout << "[DEBUG] content_length: " << content_length << std::endl;

@@ -43,6 +43,8 @@ class ServerManager {
 
         void _init_server_unit(Server server);
         int _get_client_server_fd(int client_socket) const;
+        void parse_headers(int client_sock, ClientRequest &client_request);
+
         
         void resolve_path(Request &request, int client_socket);
         const Location* _find_best_location(const std::string& request_path, const std::vector<Location> &locations) const;
@@ -75,7 +77,7 @@ class ServerManager {
         void _handle_read(int client_sock);
         void _handle_write(int client_sock);
         void _cleanup_client(int client_sock);
-        bool _request_complete(const std::string& request);
+        bool _request_complete(const ClientRequest& clrequest);
         bool _should_close_connection(const std::string& request, const std::string& response);
 
     public:
