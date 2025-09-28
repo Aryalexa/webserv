@@ -20,7 +20,7 @@ void logInfo(const char* msg, ...)
     vsnprintf(buffer, sizeof(buffer), msg, args);
     va_end(args);
 
-    std::cout << RESET << buffer << RESET << "\n";
+    std::cout << GREEN << buffer << RESET << "\n";
 }
 
 void logError(const char* msg, ...)

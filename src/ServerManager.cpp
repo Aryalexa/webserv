@@ -412,8 +412,10 @@ void ServerManager::_apply_location_config(
     logDebug("🍍 Location matched: %s", loc->getPathLocation().c_str());
 
     // Verificar métodos permitidos
-    if (!loc->getMethods()[method_toEnum(request_method)])
-        throw HttpException(HttpStatusCode::MethodNotAllowed);
+    if (!loc->getMethods()[method_toEnum(request_method)]) {
+        std::string methods = loc->getPrintMethods();
+        throw HttpExceptionNotAllowed(methods);
+    }
 
     // Root
     if (!loc->getRootLocation().empty())
@@ -539,42 +541,58 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
     std::string response_str;
 
     try {
+        logDebug("\n----------\n⛺️Parsing request:\n%s", request_str.c_str());
         Request request(request_str);
-        logDebug("🍅 Request parsed. Query: %s: %s",request.getMethod().c_str(),request.getPath().c_str());
+        if (request.getRet() != 200) 
+            throw HttpException(request.getRet());
+        logDebug("🍅 Request parsed. Query: [%s:%s]",request.getMethod().c_str(),request.getPath().c_str());
         resolve_path(request, client_socket);
         logDebug("🍅 preparing response. client socket: %i. Query: %s %s",
             client_socket, request.getMethod().c_str(), request.getPath().c_str());
         HttpResponse response(&request);
         response_str = response.getResponse();
+        logInfo("response_str ok");
     } catch (const HttpExceptionRedirect &e) {
         int code = e.getStatusCode();
         std::string location = e.getLocation();
-        std::cout << "Redirection Exception caught: " << e.what() << ", Location: " << location << std::endl;
+        logInfo("🍊 Acción: Redirigir con código %d a %s", code, location.c_str());
         HttpResponse response(code, location);
         response_str = response.getResponse();
+        logInfo("response_str redirect ok");
+    } catch (const HttpExceptionNotAllowed &e) {
+        int code = e.getStatusCode();
+        std::string methods = e.getAllowedMethods();
+        logInfo("🍊 Acción: Método no permitido. Allowed: %s", methods.c_str());
+        HttpResponse response(code);
+        response.set_allow_methods(methods);
+        response_str = response.getResponse();
+        logInfo("response_str not allowed ok");
+        logDebug("response:\n%s\n-----", response_str.c_str());
     } catch (const HttpException &e) {
         int code = e.getStatusCode();
-        std::cout << "Excepción capturada: " << e.what() << std::endl;
+        logError("HTTP Exception caught: %s, code %d", e.what(), code);
         response_str = prepare_error_response(client_socket, code);
-        
+        logInfo("response_str error ok");
+        logDebug("response:\n%s\n-----", response_str.c_str());
+
     } catch (const std::exception &e) {
         // raise exc?
         logError("Exception: %s", e.what());
         //int code = HttpStatusCode::InternalServerError; // Default to 500 Internal Server
         exit(1);
     }
-
+    logInfo("Done\n----------");
     return response_str;
 }
 
 std::string ServerManager::prepare_error_response(int client_socket, int code) {
-    logInfo("Preparing error response. client socket %i. error %d", client_socket, code);
+    logInfo("Prep error: client socket %i. error %d", client_socket, code);
     std::string response_str;
     // first: try error page in config
-    int server_fd = _get_client_server_fd(client_socket); // TODO: get server fd from client socket
+    int server_fd = _get_client_server_fd(client_socket);
     if (server_fd == -1) {
-        logError("prepare_error_response: client_socket %d not found in _client_server_map!", client_socket);
-        // Devuelve una respuesta de error de servidor genérica
+        // no deberia pasar
+        logError("prep error: client_socket %d not found in _client_server_map!", client_socket);
         HttpResponse response(HttpStatusCode::InternalServerError);
         return response.getResponse();
     }
@@ -586,12 +604,13 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
         response_str = response.getResponse();
         return response_str;
     }
-    logDebug("---prepare_error_response: error page for code %d not found in server config", code);
+    logDebug("prep error: error page for code %d not found in server config", code);
     // if not found, treat web server error
     std::string message = statusCodeString(code);
     switch (code) {
         case HttpStatusCode::NotFound:
         case HttpStatusCode::Forbidden:
+        case HttpStatusCode::MethodNotAllowed:
             {
                 // show error page
                 logError("🍊 Acción: Mostrar página de error %d.", code);
@@ -604,8 +623,11 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
             exit(2);
             break;
         case HttpStatusCode::BadRequest:
-            logError("Error. %s. Acción: Validar la solicitud del cliente.", message.c_str());
-            exit(2);
+            response_str =
+                    "HTTP/1.1 400 Bad Request\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>400 Bad Request</h1>";
             break;
         default:
             {

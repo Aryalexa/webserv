@@ -508,11 +508,18 @@ const std::string &Server::getIndex() //Check
 
 int Server::getFd() const { return this->_listen_fd; }
 
+/**
+ * Returns the path of the error page for a given HTTP status code.
+ * If no custom error page is set for the given code, an empty string is returned.
+ */
 const std::string &Server::getPathErrorPage(short key) // Check
 {
     std::map<short, std::string>::iterator it = this->_error_list.find(key);
     if (it == this->_error_list.end())
-        throw ErrorException(ERR_PAGE_ERR);
+    {
+        static const std::string empty = ""; // no se destruirá cuando acabe la función
+        return empty;
+    }
     return (it->second);
 }
 

@@ -24,7 +24,7 @@ Request::Request(const std::string& str) :
 	this->resetHeaders();
 	this->parse(str);
 	if (this->_ret != 200)
-		std::cerr << RED << "Parse error : " << this->_ret << RESET << std::endl;
+		logError("Parse error : %d", this->_ret);
 }
 
 Request::~Request()
@@ -171,7 +171,7 @@ int					Request::parse(const std::string& str)
 	std::string		key;
 	std::string		value;
 	std::string		line;
-	size_t			i(0);
+	size_t			i = 0;
 
 	this->read_first_line(nextLine(str, i));
 	while ((line = nextLine(str, i)) != "\r" && line != "" && this->_ret != 400)
@@ -201,7 +201,7 @@ int					Request::read_first_line(const std::string& str)
 	if (i == std::string::npos)
 	{
 		this->_ret = 400;
-		std::cerr << RED << "RFL no space after method" << RESET << std::endl;
+		logError("RFL no space after method. Line: <%s>", line.c_str());
 		return 400;
 	}
 	this->_method.assign(line, 0, i);
