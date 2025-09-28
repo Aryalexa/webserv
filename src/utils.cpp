@@ -158,6 +158,9 @@ int     ft_stoi(std::string str)
 	return (res);
 }
 
+/**
+ * check if 'word' is a substring of 'str'
+ */
 bool in_str(const std::string &word, const std::string &str) {
 	return str.find(word) != std::string::npos;
 }
@@ -249,4 +252,12 @@ short method_toEnum(const std::string& method) {
 		throw std::runtime_error("Invalid method string: " + method);
 		return -1; // never reached
 	}
+}
+
+bool ci_equal(const std::string& a, const std::string& b) {
+	if (a.size() != b.size()) return false;
+	for (size_t i = 0; i < a.size(); ++i) {
+		if (tolower(a[i]) != tolower(b[i])) return false;
+	}
+	return true;
 }

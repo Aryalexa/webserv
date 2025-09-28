@@ -2,6 +2,16 @@
 
 bool ServerManager::_running = true; // Initialize the static running variable
 
+ClientRequest::ClientRequest()
+    : buffer(""), max_size(0), current_size(0), content_length(-1),
+      header_end(std::string::npos), body_start(0),
+      request_path(""), method(""), headers_parsed(false) {}
+
+void ClientRequest::append_to_buffer(const std::string& chunk) {
+    buffer += chunk;
+    current_size += chunk.size();
+}
+
 ServerManager::ServerManager()
   : _max_fd(0)
 {
@@ -9,17 +19,18 @@ ServerManager::ServerManager()
 
 ServerManager::~ServerManager(){}
 
-void ServerManager::setup(const std::vector<ServerSetUp>& configs) {
+void ServerManager::setup(const std::vector<Server>& configs) {
 
     _servers = configs;
+    logDebug("Setting up %zu server(s)", _servers.size());
     
     for (size_t i = 0; i < _servers.size(); ++i) 
     {
-        ServerSetUp &server = _servers[i];
+        Server &server = _servers[i];
         bool reused = false;
 
         for (size_t j = 0; j < i; ++j) {
-            const ServerSetUp &prev = _servers[j];
+            const Server &prev = _servers[j];
             if (prev.getHost() == server.getHost() &&
                 prev.getPort() == server.getPort())
             {
@@ -46,7 +57,7 @@ void ServerManager::setup(const std::vector<ServerSetUp>& configs) {
         );
     }
 }
-void ServerManager::_init_server_unit(ServerSetUp server) {
+void ServerManager::_init_server_unit(Server server) {
     // listen
     int fd = server.getFd();
     if (listen(fd, BACKLOG_SIZE) < 0) {
@@ -109,7 +120,7 @@ void ServerManager::init()
             }
         }
     }
-    logInfo("\nServer shutting down...");
+    logInfo("\nServers shutting down...");
 }
 
 void ServerManager::_handle_new_connection(int listening_socket) {
@@ -130,7 +141,7 @@ void ServerManager::_handle_new_connection(int listening_socket) {
     if (client_sock > _max_fd) _max_fd = client_sock;
 
     _client_server_map[client_sock] = listening_socket; // Map client socket to server socket
-    _read_buffer[client_sock] = ""; // Initialize read buffer for the new client
+    _read_requests[client_sock] = ClientRequest(); // Initialize Request object for the new client
     _write_buffer[client_sock] = ""; // Initialize write buffer for the new client
     _bytes_sent[client_sock] = 0; // Initialize bytes sent for the new client
     logInfo("🐠 New connection accepted on socket %d. Listening socket: %d", client_sock, listening_socket);
@@ -149,11 +160,11 @@ void ServerManager::_handle_write(int client_sock) {
     }
     _bytes_sent[client_sock] += n;
     if (_bytes_sent[client_sock] == _write_buffer[client_sock].size()) {
-       if (_should_close_connection(_read_buffer[client_sock], _write_buffer[client_sock])) {
+       if (_should_close_connection(_read_requests[client_sock].buffer, _write_buffer[client_sock])) {
             _cleanup_client(client_sock);
         } else {
             // Mantener la conexión: limpiar buffers y volver a modo lectura
-            _read_buffer[client_sock].clear();
+            _read_requests[client_sock] = ClientRequest(); // Reset the Request object
             _write_buffer[client_sock].clear();
             _bytes_sent[client_sock] = 0;
             FD_CLR(client_sock, &_write_fds);
@@ -174,14 +185,142 @@ bool ServerManager::_should_close_connection(const std::string& request, const s
     }
     return closing;
 }
+
+bool ServerManager::parse_headers(int client_sock, ClientRequest &cr) {
+    // Extraer Path y Content-Length si existe
+    cr.header_end = cr.buffer.find("\r\n\r\n");
+    if (cr.header_end == std::string::npos) return false; // faltan headers
+    cr.body_start = cr.header_end + 4;
+
+    // Primera línea. Request line: "GET /path HTTP/1.1"
+    size_t line_end = cr.buffer.find("\r\n");
+    if (line_end == std::string::npos) return false; // faltan headers
+    std::string req_line = cr.buffer.substr(0, line_end);
+    {
+        // Método y path. 
+        size_t sp1 = req_line.find(' ');
+        size_t sp2 = (sp1 == std::string::npos) ? std::string::npos : req_line.find(' ', sp1 + 1);
+        if (sp1 != std::string::npos && sp2 != std::string::npos) {
+            cr.method = req_line.substr(0, sp1);
+            cr.request_path = req_line.substr(sp1 + 1, sp2 - sp1 - 1);
+        }
+    }
+    // Headers
+    cr.content_length = -1;
+    size_t pos = line_end + 2;
+    while (pos < cr.header_end) {
+        size_t next = cr.buffer.find("\r\n", pos);
+        if (next == std::string::npos || next > cr.header_end) break;
+        std::string line = cr.buffer.substr(pos, next - pos);
+        size_t colon = line.find(':');
+        if (colon != std::string::npos) {
+            std::string key = line.substr(0, colon);
+            std::string val = line.substr(colon + 1);
+            strip(key, ' ');
+            strip(val, ' ');
+            if (ci_equal(key, "Content-Length")) {
+                cr.content_length = strtol(val.c_str(), NULL, 10);
+                if (cr.content_length < 0) cr.content_length = -1;
+            }
+            // Si quieres, aquí puedes detectar "Transfer-Encoding: chunked" y rechazarlo.
+        }
+        pos = next + 2;
+    }
+    // Determinar max_size (location > server)
+    int server_fd = _get_client_server_fd(client_sock);
+    if (server_fd < 0) {
+        logError("Could not find server for client socket %d", client_sock);
+        return false;
+    }
+    Server &server = _servers_map[server_fd];
+    const Location* loc = _find_best_location(cr.request_path, server.getLocations());
+    if (loc)
+        cr.max_size = loc->getMaxBodySize();
+    else
+        cr.max_size = server.getClientMaxBodySize();
+
+    cr.headers_parsed = true;
+
+    // Si hay Content-Length y supera el límite, corta ya (como Nginx)
+    if (cr.max_size > 0 && cr.content_length >= 0
+        && (size_t)cr.content_length > cr.max_size) {
+        // Señal para el caller: devolverá 413
+        logError("Payload declared too large: CL=%ld > limit=%zu",
+                 cr.content_length, cr.max_size);
+    }
+    return true;
+}
+
 void ServerManager::_handle_read(int client_sock) {
     char buffer[BUFFER_SIZE];
     int n;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
+    ClientRequest &cr = _read_requests[client_sock];
 
+    // receive client request data
     while ((n = recv(client_sock, buffer, sizeof(buffer), 0)) > 0) {
-        _read_buffer[client_sock].append(buffer, n);
+        cr.append_to_buffer(std::string(buffer, n));
+
+        // Parsear headers una sola vez, cuando estén completos
+        if (!cr.headers_parsed) {
+            if (!parse_headers(client_sock, cr)) {
+                // Aún no hay headers completos; sigue leyendo
+                continue;
+            }
+            // Si Content-Length ya excede el límite → 413 inmediato
+            if (cr.max_size > 0 && cr.content_length >= 0
+                && (size_t)cr.content_length > cr.max_size) {
+                _write_buffer[client_sock] =
+                    "HTTP/1.1 413 Payload Too Large\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>413 Payload Too Large</h1>";
+                _bytes_sent[client_sock] = 0;
+                FD_CLR(client_sock, &_read_fds);
+                FD_SET(client_sock, &_write_fds);
+                return;
+            }
+        }
+        // Si ya hay headers, check max body size y completitud
+        if (cr.headers_parsed) {
+            size_t body_bytes = (cr.current_size > cr.body_start)
+                                ? (cr.current_size - cr.body_start)
+                                : 0;
+
+            // check max body size
+            if (cr.max_size > 0 && body_bytes > cr.max_size) {
+                logError("Client %d exceeded max body size (body=%zu > %zu). 413.",
+                         client_sock, body_bytes, cr.max_size);
+                _write_buffer[client_sock] =
+                    "HTTP/1.1 413 Payload Too Large\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>413 Payload Too Large</h1>";
+                _bytes_sent[client_sock] = 0;
+                FD_CLR(client_sock, &_read_fds);
+                FD_SET(client_sock, &_write_fds);
+                return;
+            }
+
+            // check request completeness
+            bool complete = false;
+            if (cr.content_length < 0) {
+                // No hay body esperado → con headers basta
+                complete = true;
+            } else {
+                complete = (body_bytes >= (size_t)cr.content_length);
+            }
+            if (complete) {
+                logInfo("🐠 Request complete from client socket %d", client_sock);
+                // responder sin esperar a que el cliente cierre la conexión.
+                _write_buffer[client_sock] = prepare_response(client_sock, cr.buffer);
+                _bytes_sent[client_sock] = 0;
+                FD_CLR(client_sock, &_read_fds);
+                FD_SET(client_sock, &_write_fds);
+                return;
+            }
+        }
     }
     if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
         logError("Failed to receive data from client");
@@ -190,50 +329,51 @@ void ServerManager::_handle_read(int client_sock) {
     }
 
     if (n == 0) {
-        if (_request_complete(_read_buffer[client_sock])) {
-            logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
-            _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
+        // el cliente cerró la conexión.
+        // Cierre del peer: decide con lo que tengas
+        if (cr.headers_parsed) {
+            size_t body_bytes = (cr.current_size > cr.body_start)
+                                ? (cr.current_size - cr.body_start)
+                                : 0;
+            if (cr.content_length < 0 || body_bytes >= (size_t)cr.content_length) {
+                logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
+                // last opportunity to respond
+                _write_buffer[client_sock] = prepare_response(client_sock, cr.buffer);
+            } else {
+                logError("Client disconnected before sending full body on socket %d. 400.", client_sock);
+                _write_buffer[client_sock] =
+                    "HTTP/1.1 400 Bad Request\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>400 Bad Request</h1>";
+            }
         } else {
-            logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
-            _write_buffer[client_sock] = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>400 Bad Request</h1>";
+            logError("Client disconnected before sending headers on socket %d. 400.", client_sock);
+            _write_buffer[client_sock] =
+                "HTTP/1.1 400 Bad Request\r\n"
+                "Content-Type: text/html\r\n"
+                "Connection: close\r\n\r\n"
+                "<h1>400 Bad Request</h1>";
         }
         _bytes_sent[client_sock] = 0;
+        FD_CLR(client_sock, &_read_fds);
         FD_SET(client_sock, &_write_fds);
         return;
     }
-
-    if (!_request_complete(_read_buffer[client_sock])) {
-        logInfo("🐠 Partial request received from client socket %d, waiting for more data...", client_sock);
-        return;
-    }
-    logInfo("🐠 Request complete from client socket %d", client_sock);
-    _write_buffer[client_sock] = prepare_response(client_sock, _read_buffer[client_sock]);
-    _bytes_sent[client_sock] = 0;
-    FD_SET(client_sock, &_write_fds);
 }
 
-bool ServerManager::_request_complete(const std::string& request) {
+bool ServerManager::_request_complete(const ClientRequest& clrequest) {
+    const std::string& request = clrequest.buffer;
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos)
         return false; // Headers incompletos
   
-    size_t cl_pos = request.find("Content-Length:");
-    if (cl_pos == std::string::npos)
-        return true; // No hay body, solo headers
-
-    size_t cl_end = request.find("\r\n", cl_pos);
-    std::string cl_str = request.substr(cl_pos + 15, cl_end - (cl_pos + 15));
-    cl_str.erase(0, cl_str.find_first_not_of(" \t"));
-    cl_str.erase(cl_str.find_last_not_of(" \t") + 1);
-    int content_length = atoi(cl_str.c_str());
+    int content_length = clrequest.content_length;
+    if (clrequest.headers_parsed && content_length == 0)
+        return true; // No hay body esperado
 
     size_t body_start = header_end + 4;
-    size_t body_size = request.size() - body_start;
-
-    std::cout << "[DEBUG] header_end: " << header_end << std::endl;
-    std::cout << "[DEBUG] content_length: " << content_length << std::endl;
-    std::cout << "[DEBUG] body_start: " << body_start << std::endl;
-    std::cout << "[DEBUG] body_size: " << body_size << std::endl;
+    size_t body_size = clrequest.current_size - body_start;
 
     return body_size >= (size_t)content_length;
 }
@@ -367,7 +507,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         throw HttpException(HttpStatusCode::InternalServerError);
     }
 
-    ServerSetUp &server = _servers_map[server_fd];
+    Server &server = _servers_map[server_fd];
     std::string path = request.getPath();
     path = path_normalization(clean_path(path));
     
@@ -438,7 +578,7 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
         HttpResponse response(HttpStatusCode::InternalServerError);
         return response.getResponse();
     }
-    ServerSetUp &server = _servers_map[server_fd];
+    Server &server = _servers_map[server_fd];
     std::string err_page_path = server.getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
@@ -468,8 +608,13 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
             exit(2);
             break;
         default:
-            logError("Error no gestionado: %s. hacer algo!.", message.c_str());
-            exit(2);
+            {
+                logError("Error no gestionado: %s. hacer algo!.", message.c_str());
+                // show error page
+                logError("🍊 Acción: Mostrar página de error %d.", code);
+                HttpResponse response(code);
+                response_str = response.getResponse();
+            }
             break;
     }
     return response_str;
@@ -480,7 +625,7 @@ void ServerManager::_cleanup_client(int client_sock) {
     FD_CLR(client_sock, &_write_fds);
     close(client_sock);
     _client_server_map.erase(client_sock);
-    _read_buffer.erase(client_sock);
+    _read_requests.erase(client_sock);
     _write_buffer.erase(client_sock);
     _bytes_sent.erase(client_sock);
     logInfo("🐟 Client socket %d cleaned up", client_sock);

@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     //tests(); // Descomenta para ejecutar pruebas
     std::string config_path;
     ReadConfig config_reader;
-    std::vector<ServerSetUp> serverGroup;
+    std::vector<Server> serverGroup;
     ServerManager serverManager;
 
     if (argc > 2) {
@@ -37,9 +37,9 @@ int main(int argc, char **argv)
             config_path = argv[1];
         
         config_reader.createServerGroup(config_path);
-
+        logDebug("🍉 All servers validated successfully");
         serverGroup = config_reader.getServers();
-
+        logDebug("🍉 Config file %s parsed successfully", config_path.c_str());
         serverManager.setup(serverGroup);
         serverManager.init();
 
