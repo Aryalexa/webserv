@@ -33,6 +33,7 @@ std::string		replace_all(const std::string& str, const std::string& from, const 
 bool			path_matches(const std::string& prefix, const std::string& path);
 std::string		method_toString(int method);
 short			method_toEnum(const std::string& method);
+bool			ci_equal(const std::string& a, const std::string& b);
 
 
 #endif // UTILS_HPP

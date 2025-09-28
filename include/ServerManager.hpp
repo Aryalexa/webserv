@@ -8,15 +8,18 @@
 class Server;
 
 struct ClientRequest {
-    std::string buffer;       // Acumula los datos recibidos
-    size_t max_size;          // client_max_body_size de la location / server
-    size_t current_size;      // total bytes recibidos hasta ahora
-    size_t content_length;    // Content-Length declarado por el cliente
-    std::string request_path; // Para saber qué location aplica
-    bool headers_parsed;      // Si ya leíste los headers
+    std::string buffer;       // headers + body acumulado
+    size_t      max_size;     // límite efectivo (location o server); 0 = ilimitado
+    size_t      current_size; // bytes totales recibidos (headers + body)
+    long        content_length; // -1 si no hay Content-Length
+    size_t      header_end;   // posición de "\r\n\r\n" (fin de headers) en buffer
+    size_t      body_start;   // header_end + 4
+    std::string request_path; // para elegir location
+    std::string method;       // GET/POST/DELETE...
+    bool        headers_parsed;
 
     ClientRequest();
-    void append_to_buffer(std::string str);
+    void append_to_buffer(const std::string& str);
 };
 
 class ServerManager {
@@ -43,7 +46,7 @@ class ServerManager {
 
         void _init_server_unit(Server server);
         int _get_client_server_fd(int client_socket) const;
-        void parse_headers(int client_sock, ClientRequest &client_request);
+        bool parse_headers(int client_sock, ClientRequest &cr);
 
         
         void resolve_path(Request &request, int client_socket);

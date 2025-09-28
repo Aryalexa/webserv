@@ -3,12 +3,13 @@
 bool ServerManager::_running = true; // Initialize the static running variable
 
 ClientRequest::ClientRequest()
-  : buffer(""), max_size(0), current_size(0), content_length(0), request_path(""), headers_parsed(false)
-{}
+    : buffer(""), max_size(0), current_size(0), content_length(-1),
+      header_end(std::string::npos), body_start(0),
+      request_path(""), method(""), headers_parsed(false) {}
 
-void ClientRequest::append_to_buffer(std::string str) {
-    buffer += str;
-    current_size += str.size();
+void ClientRequest::append_to_buffer(const std::string& chunk) {
+    buffer += chunk;
+    current_size += chunk.size();
 }
 
 ServerManager::ServerManager()
@@ -185,60 +186,69 @@ bool ServerManager::_should_close_connection(const std::string& request, const s
     return closing;
 }
 
-void ServerManager::parse_headers(int client_sock, ClientRequest &client_request) {
-    size_t header_end = client_request.buffer.find("\r\n\r\n");
-    if (header_end == std::string::npos)
-        return; // Headers incompletos
-    
+bool ServerManager::parse_headers(int client_sock, ClientRequest &cr) {
     // Extraer Path y Content-Length si existe
-    std::string headers = client_request.buffer.substr(0, header_end);
-    std::vector<std::string> lines = split(headers, '\n');
-    for (size_t i = 0; i < lines.size(); ++i) {
-        std::string line = lines[i];
-        if (line.back() == '\r')
-            line.pop_back(); // Remove trailing \r
-        if (i == 0) {
-            // Primera línea: método y path
-            size_t method_end = line.find(' ');
-            size_t path_end = line.find(' ', method_end + 1);
-            if (method_end != std::string::npos && path_end != std::string::npos) {
-                std::string method = line.substr(0, method_end);
-                std::string path = line.substr(method_end + 1, path_end - method_end - 1);
-                client_request.request_path = path;
-                logDebug("🍍 Parsed request method: %s, path: %s", method.c_str(), path.c_str());
-            }
-        } else {
-            // Otras líneas: headers
-            size_t colon_pos = line.find(':');
-            if (colon_pos != std::string::npos) {
-                std::string key = line.substr(0, colon_pos);
-                std::string value = line.substr(colon_pos + 1);
-                strip(key, ' ');
-                strip(value, ' ');
-                if (key == "Content-Length") {
-                    client_request.content_length = atoi(value.c_str());
-                    logDebug("🍍 Parsed Content-Length: %zu", client_request.content_length);
-                }
-            }
+    cr.header_end = cr.buffer.find("\r\n\r\n");
+    if (cr.header_end == std::string::npos) return false; // faltan headers
+    cr.body_start = cr.header_end + 4;
+
+    // Primera línea. Request line: "GET /path HTTP/1.1"
+    size_t line_end = cr.buffer.find("\r\n");
+    if (line_end == std::string::npos) return false; // faltan headers
+    std::string req_line = cr.buffer.substr(0, line_end);
+    {
+        // Método y path. 
+        size_t sp1 = req_line.find(' ');
+        size_t sp2 = (sp1 == std::string::npos) ? std::string::npos : req_line.find(' ', sp1 + 1);
+        if (sp1 != std::string::npos && sp2 != std::string::npos) {
+            cr.method = req_line.substr(0, sp1);
+            cr.request_path = req_line.substr(sp1 + 1, sp2 - sp1 - 1);
         }
     }
-    // Obtener Location correspondiente y fijar max_size = location.client_max_body_size
+    // Headers
+    cr.content_length = -1;
+    size_t pos = line_end + 2;
+    while (pos < cr.header_end) {
+        size_t next = cr.buffer.find("\r\n", pos);
+        if (next == std::string::npos || next > cr.header_end) break;
+        std::string line = cr.buffer.substr(pos, next - pos);
+        size_t colon = line.find(':');
+        if (colon != std::string::npos) {
+            std::string key = line.substr(0, colon);
+            std::string val = line.substr(colon + 1);
+            strip(key, ' ');
+            strip(val, ' ');
+            if (ci_equal(key, "Content-Length")) {
+                cr.content_length = strtol(val.c_str(), NULL, 10);
+                if (cr.content_length < 0) cr.content_length = -1;
+            }
+            // Si quieres, aquí puedes detectar "Transfer-Encoding: chunked" y rechazarlo.
+        }
+        pos = next + 2;
+    }
+    // Determinar max_size (location > server)
     int server_fd = _get_client_server_fd(client_sock);
     if (server_fd < 0) {
         logError("Could not find server for client socket %d", client_sock);
-        exit(1);
+        return false;
     }
     Server &server = _servers_map[server_fd];
-    const std::vector<Location> &locations = server.getLocations();
-    const Location* loc = _find_best_location(client_request.request_path, locations);
-    if (loc) {
-        client_request.max_size = loc->getMaxBodySize();
-        logDebug("🍍 Applied client_max_body_size: %zu", client_request.max_size);
-    } else {
-        client_request.max_size = server.getClientMaxBodySize();
-        logDebug("🍍 Applied server client_max_body_size: %zu", client_request.max_size);
+    const Location* loc = _find_best_location(cr.request_path, server.getLocations());
+    if (loc)
+        cr.max_size = loc->getMaxBodySize();
+    else
+        cr.max_size = server.getClientMaxBodySize();
+
+    cr.headers_parsed = true;
+
+    // Si hay Content-Length y supera el límite, corta ya (como Nginx)
+    if (cr.max_size > 0 && cr.content_length >= 0
+        && (size_t)cr.content_length > cr.max_size) {
+        // Señal para el caller: devolverá 413
+        logError("Payload declared too large: CL=%ld > limit=%zu",
+                 cr.content_length, cr.max_size);
     }
-    assert(client_request.max_size != 0);
+    return true;
 }
 
 void ServerManager::_handle_read(int client_sock) {
@@ -246,26 +256,70 @@ void ServerManager::_handle_read(int client_sock) {
     int n;
 
     logInfo("🐟 Client connected on socket %d", client_sock);
+    ClientRequest &cr = _read_requests[client_sock];
 
-    ClientRequest &cur_request = _read_requests[client_sock];
-
+    // receive client request data
     while ((n = recv(client_sock, buffer, sizeof(buffer), 0)) > 0) {
-        cur_request.append_to_buffer(std::string(buffer, n));
-        if (!cur_request.headers_parsed) {
-            parse_headers(client_sock, cur_request);
-            cur_request.headers_parsed = true;
+        cr.append_to_buffer(std::string(buffer, n));
+
+        // Parsear headers una sola vez, cuando estén completos
+        if (!cr.headers_parsed) {
+            if (!parse_headers(client_sock, cr)) {
+                // Aún no hay headers completos; sigue leyendo
+                continue;
+            }
+            // Si Content-Length ya excede el límite → 413 inmediato
+            if (cr.max_size > 0 && cr.content_length >= 0
+                && (size_t)cr.content_length > cr.max_size) {
+                _write_buffer[client_sock] =
+                    "HTTP/1.1 413 Payload Too Large\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>413 Payload Too Large</h1>";
+                _bytes_sent[client_sock] = 0;
+                FD_CLR(client_sock, &_read_fds);
+                FD_SET(client_sock, &_write_fds);
+                return;
+            }
         }
-        if (cur_request.max_size > 0 && cur_request.current_size > cur_request.max_size) {
-            logError("Client on socket %d exceeded max body size (%zu > %zu). Sending 413.", client_sock, cur_request.current_size, cur_request.max_size);
-            _write_buffer[client_sock] =
-                "HTTP/1.1 413 Payload Too Large\r\n"
-                "Content-Type: text/html\r\n"
-                "Connection: close\r\n\r\n"
-                "<h1>413 Payload Too Large</h1>";
-            _bytes_sent[client_sock] = 0;
-            FD_CLR(client_sock, &_read_fds);
-            FD_SET(client_sock, &_write_fds);
-            return;
+        // Si ya hay headers, check max body size y completitud
+        if (cr.headers_parsed) {
+            size_t body_bytes = (cr.current_size > cr.body_start)
+                                ? (cr.current_size - cr.body_start)
+                                : 0;
+
+            // check max body size
+            if (cr.max_size > 0 && body_bytes > cr.max_size) {
+                logError("Client %d exceeded max body size (body=%zu > %zu). 413.",
+                         client_sock, body_bytes, cr.max_size);
+                _write_buffer[client_sock] =
+                    "HTTP/1.1 413 Payload Too Large\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>413 Payload Too Large</h1>";
+                _bytes_sent[client_sock] = 0;
+                FD_CLR(client_sock, &_read_fds);
+                FD_SET(client_sock, &_write_fds);
+                return;
+            }
+
+            // check request completeness
+            bool complete = false;
+            if (cr.content_length < 0) {
+                // No hay body esperado → con headers basta
+                complete = true;
+            } else {
+                complete = (body_bytes >= (size_t)cr.content_length);
+            }
+            if (complete) {
+                logInfo("🐠 Request complete from client socket %d", client_sock);
+                // responder sin esperar a que el cliente cierre la conexión.
+                _write_buffer[client_sock] = prepare_response(client_sock, cr.buffer);
+                _bytes_sent[client_sock] = 0;
+                FD_CLR(client_sock, &_read_fds);
+                FD_SET(client_sock, &_write_fds);
+                return;
+            }
         }
     }
     if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
@@ -275,11 +329,26 @@ void ServerManager::_handle_read(int client_sock) {
     }
 
     if (n == 0) {
-        if (_request_complete(_read_requests[client_sock])) {
-            logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
-            _write_buffer[client_sock] = prepare_response(client_sock, _read_requests[client_sock].buffer);
+        // el cliente cerró la conexión.
+        // Cierre del peer: decide con lo que tengas
+        if (cr.headers_parsed) {
+            size_t body_bytes = (cr.current_size > cr.body_start)
+                                ? (cr.current_size - cr.body_start)
+                                : 0;
+            if (cr.content_length < 0 || body_bytes >= (size_t)cr.content_length) {
+                logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
+                // last opportunity to respond
+                _write_buffer[client_sock] = prepare_response(client_sock, cr.buffer);
+            } else {
+                logError("Client disconnected before sending full body on socket %d. 400.", client_sock);
+                _write_buffer[client_sock] =
+                    "HTTP/1.1 400 Bad Request\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<h1>400 Bad Request</h1>";
+            }
         } else {
-            logError("Client disconnected before sending full request on socket %d. Sending 400.", client_sock);
+            logError("Client disconnected before sending headers on socket %d. 400.", client_sock);
             _write_buffer[client_sock] =
                 "HTTP/1.1 400 Bad Request\r\n"
                 "Content-Type: text/html\r\n"
@@ -291,16 +360,6 @@ void ServerManager::_handle_read(int client_sock) {
         FD_SET(client_sock, &_write_fds);
         return;
     }
-
-    if (!_request_complete(_read_requests[client_sock])) {
-        logInfo("🐠 Partial request received from client socket %d, waiting for more data...", client_sock);
-        return;
-    }
-    logInfo("🐠 Request complete from client socket %d", client_sock);
-    _write_buffer[client_sock] = prepare_response(client_sock, _read_requests[client_sock].buffer);
-    _bytes_sent[client_sock] = 0;
-    FD_CLR(client_sock, &_read_fds);
-    FD_SET(client_sock, &_write_fds);
 }
 
 bool ServerManager::_request_complete(const ClientRequest& clrequest) {
@@ -315,11 +374,6 @@ bool ServerManager::_request_complete(const ClientRequest& clrequest) {
 
     size_t body_start = header_end + 4;
     size_t body_size = clrequest.current_size - body_start;
-
-    std::cout << "[DEBUG] header_end: " << header_end << std::endl;
-    std::cout << "[DEBUG] content_length: " << content_length << std::endl;
-    std::cout << "[DEBUG] body_start: " << body_start << std::endl;
-    std::cout << "[DEBUG] body_size: " << body_size << std::endl;
 
     return body_size >= (size_t)content_length;
 }
