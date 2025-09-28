@@ -139,8 +139,9 @@ std::string HttpResponse::getHeaders() const {
     std::string headers =
         "Content-Type: " + _headers.content_type + "\r\n" +
         "Content-Length: " + _headers.content_length + "\r\n" +
-        "Allow: " + _headers.allow + "\r\n" +
         "Connection: " + _headers.connection + "\r\n";
+    if (!_headers.allow.empty())
+        headers += "Allow: " + _headers.allow + "\r\n";
     if (!_headers.location.empty())
         headers += "Location: " + _headers.location + "\r\n";
     return headers;
@@ -306,4 +307,9 @@ void HttpResponse::set_empty_response_close(int code) {
     _headers.connection = "close";
     _body = ""; // Sin cuerpo
 }
+
+void HttpResponse::set_allow_methods(const std::string& methods) {
+    _headers.allow = methods;
+}
+
 

@@ -95,4 +95,18 @@ public:
     virtual ~HttpExceptionRedirect() throw() {}
 };
 
+
+// CLASS HttpExceptionNotAllowed ////////////////////////////////////////////////////////
+
+class HttpExceptionNotAllowed : public HttpException {
+private:
+    std::string methods; // lista de métodos permitidos
+public:
+    HttpExceptionNotAllowed(const std::string& methods)
+        : HttpException(HttpStatusCode::MethodNotAllowed), methods(methods) {}
+    
+    const std::string& getAllowedMethods() const { return methods; }
+    virtual ~HttpExceptionNotAllowed() throw() {}
+};
+
 #endif

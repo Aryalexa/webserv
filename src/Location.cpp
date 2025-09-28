@@ -206,31 +206,19 @@ const unsigned long &Location::getMaxBodySize() const
 std::string Location::getPrintMethods() const
 {
 	std::string res;
-	if (_methods[M_HEAD])
-		res.insert(0, "HEAD");
-	if (_methods[M_PUT])
-	{
-		if (!res.empty())
-			res.insert(0, ", ");
-		res.insert(0, "PUT");
-	}
-	if (_methods[M_DELETE])
-	{
-		if (!res.empty())
-			res.insert(0, "\n");
-		res.insert(0, "DELETE");
-	}
-	if (_methods[M_POST])
-	{
-		if (!res.empty())
-			res.insert(0, "\n");
-		res.insert(0, "POST");
-	}
-	if (_methods[M_GET])
-	{
-		if (!res.empty())
-			res.insert(0, "\n");
-		res.insert(0, "GET");
-	}
-	return (res);
+    bool first = true;
+
+    // iteramos sobre todos los métodos posibles
+    for (int i = M_GET; i <= M_HEAD; ++i) 
+    {
+        if (_methods[i]) 
+        {
+            if (!first)
+                res += ", ";
+            res += method_toString(i);
+            first = false;
+        }
+    }
+
+    return res;
 }
