@@ -54,8 +54,12 @@ Location &Location::operator=(const Location &rhs)
 
 Location::~Location() { }
 
-void Location::setPath(std::string token)
+void Location::setPathLocation(std::string token)
 {
+	// si no es /, pero acaba en /, quitar el /
+	if (token != "/" && token[token.length() - 1] == '/')
+		token = token.substr(0, token.length() - 1);
+	
 	this->_path = token;
 }
 

@@ -29,7 +29,7 @@ class Location
 
 		std::map<std::string, std::string> _ext_path;
 
-		void                                        setPath(std::string token);
+		void                                        setPathLocation(std::string token);
 		void                                        setRootLocation(std::string token);
 		void                                        setMethods(std::vector<std::string> methods);
 		void                                        setAutoindex(std::string token);

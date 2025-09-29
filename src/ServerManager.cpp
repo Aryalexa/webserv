@@ -416,7 +416,7 @@ void ServerManager::_apply_location_config(
         std::string methods = loc->getPrintMethods();
         throw HttpExceptionNotAllowed(methods);
     }
-
+    
     // Root
     if (!loc->getRootLocation().empty())
         root = loc->getRootLocation();
@@ -470,8 +470,8 @@ void ServerManager::_handle_directory_case(
         request.setAutoindex(true);
     }
     else {
-        // No hay index y autoindex está deshabilitado → 403
-        throw HttpException(HttpStatusCode::Forbidden);
+        // No hay index y autoindex está deshabilitado → 404
+        throw HttpException(HttpStatusCode::NotFound);
     }
     
 }

@@ -209,18 +209,7 @@ void Server::setLocation(std::string path, std::vector<std::string> token) // Ch
     bool flag_max_size = false;
     int valid;
 
-    // if the location is a directory, it should always end with a /
-    // if ( ConfigFile::getTypePath(ServerSetUp::getRoot() + path) == F_DIRECTORY) {
-    //     if (path[path.length() - 1] != '/')
-    //         path += '/';
-    // }
-    /**
-     * // --- CORRECCIÓN: Si es directorio, asegurar que termina con '/' ---
-    if (ConfigFile::getTypePath(path) == F_DIRECTORY && !path.empty() && path[path.size() - 1] != '/')
-        path += "/";
-    // --- FIN CORRECCIÓN ---
-     */
-    new_location.setPath(path);
+    new_location.setPathLocation(path);
     for (size_t i = 0; i < token.size(); i++)
     {
         if (token[i] == ROOT && (i + 1) < token.size())

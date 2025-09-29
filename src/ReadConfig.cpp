@@ -91,7 +91,7 @@ size_t ReadConfig::findStartServer (size_t start, std::string &content)
 		if (content[i] == 's')
 			break ;
 		if (!isspace(content[i]))
-			throw  ErrorException(SERVER_SCOPE_ERR);
+			throw ErrorException(SERVER_SCOPE_ERR);
 	}
 	if (!content[i])
 		return (start);
@@ -103,7 +103,7 @@ size_t ReadConfig::findStartServer (size_t start, std::string &content)
 	if (content[i] == '{')
 		return (i);
 	else
-		throw  ErrorException(SERVER_SCOPE_ERR);
+		throw ErrorException(SERVER_SCOPE_ERR);
 
 }
 
@@ -151,13 +151,13 @@ void ReadConfig::createServer(std::string &config, Server &server)
 
 	tokens = splitTokens(config += ' ', std::string(" \n\t"));
 	if (tokens.size() < 3)
-		throw  ErrorException(SERVER_VALIDATION_ERR);
+		throw ErrorException(SERVER_VALIDATION_ERR);
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
 		if (tokens[i] == "listen" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (server.getPort())
-				throw  ErrorException(PORT_ERR);
+				throw ErrorException(PORT_ERR);
 			server.setPort(tokens[++i]);
 		}
 		else if (tokens[i] == "location" && (i + 1) < tokens.size())
@@ -165,29 +165,29 @@ void ReadConfig::createServer(std::string &config, Server &server)
 			std::string	path;
 			i++;
 			if (tokens[i] == "{" || tokens[i] == "}")
-				throw  ErrorException(SERVER_SCOPE_ERR);
+				throw ErrorException(SERVER_SCOPE_ERR);
 			path = tokens[i];
 			std::vector<std::string> codes;
 			if (tokens[++i] != "{")
-				throw  ErrorException(SERVER_SCOPE_ERR);
+				throw ErrorException(SERVER_SCOPE_ERR);
 			i++;
 			while (i < tokens.size() && tokens[i] != "}")
 				codes.push_back(tokens[i++]);
 			server.setLocation(path, codes);
 			if (i < tokens.size() && tokens[i] != "}")
-				throw  ErrorException(SERVER_SCOPE_ERR);
+				throw ErrorException(SERVER_SCOPE_ERR);
 			flag_loc = 0;
 		}
 		else if (tokens[i] == "host" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (server.getHost())
-				throw  ErrorException(HOST_ERR);
+				throw ErrorException(HOST_ERR);
 			server.setHost(tokens[++i]);
 		}
 		else if (tokens[i] == "root" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (!server.getRoot().empty())
-				throw  ErrorException(ROOT_ERR);
+				throw ErrorException(ROOT_ERR);
 			server.setRoot(tokens[++i]);
 		}
 		else if (tokens[i] == "error_page" && (i + 1) < tokens.size() && flag_loc)
@@ -204,20 +204,20 @@ void ReadConfig::createServer(std::string &config, Server &server)
 		else if (tokens[i] == "client_max_body_size" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (flag_max_size)
-				throw  ErrorException(CLIENT_ERR);
+				throw ErrorException(CLIENT_ERR);
 			server.setClientMaxBodySize(tokens[++i]);
 			flag_max_size = true;
 		}
 		else if (tokens[i] == "server_name" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (!server.getServerName().empty())
-				throw  ErrorException(SERVER_NAME_ERR);
+				throw ErrorException(SERVER_NAME_ERR);
 			server.setServerName(tokens[++i]);
 		}
 		else if (tokens[i] == "index" && (i + 1) < tokens.size() && flag_loc)
 		{
 			if (!server.getIndex().empty())
-				throw  ErrorException(INDEX_ERR);
+				throw ErrorException(INDEX_ERR);
 			server.setIndex(tokens[++i]);
 		}
 		else if (tokens[i] == "autoindex" && (i + 1) < tokens.size() && flag_loc)
@@ -230,9 +230,9 @@ void ReadConfig::createServer(std::string &config, Server &server)
 		else if (tokens[i] != "}" && tokens[i] != "{")
 		{
 			if (!flag_loc)
-				throw  ErrorException(TOKEN_ERR ": " + tokens[i] + "(unknown token in location)");
+				throw ErrorException(TOKEN_ERR ": " + tokens[i] + "(unknown token in location)");
 			else
-				throw  ErrorException(DIRECTIVE_ERR);
+				throw ErrorException(DIRECTIVE_ERR);
 		}
 	}
 	// set default values if not set

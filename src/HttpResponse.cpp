@@ -138,12 +138,12 @@ std::string HttpResponse::getStatusLine() const {
 std::string HttpResponse::getHeaders() const {
     std::string headers =
         "Content-Type: " + _headers.content_type + "\r\n" +
-        "Content-Length: " + _headers.content_length + "\r\n" +
-        "Connection: " + _headers.connection + "\r\n";
+        "Content-Length: " + _headers.content_length + "\r\n";
     if (!_headers.allow.empty())
         headers += "Allow: " + _headers.allow + "\r\n";
     if (!_headers.location.empty())
         headers += "Location: " + _headers.location + "\r\n";
+    headers += "Connection: " + _headers.connection + "\r\n";
     return headers;
 }
 std::string HttpResponse::getBody() const {
