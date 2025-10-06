@@ -1,6 +1,6 @@
 #include "../include/WebServ.hpp"
 
-Server::Server() // Check
+ServerUnit::ServerUnit() // Check
 {
     this->_port = 0;
     this->_host = 0;
@@ -13,9 +13,9 @@ Server::Server() // Check
     this->_listen_fd = 0;
 }
 
-Server::~Server() { } // Check
+ServerUnit::~ServerUnit() { } // Check
 
-Server::Server(const Server &other) // Check
+ServerUnit::ServerUnit(const ServerUnit &other) // Check
 {
     if (this != &other)
     {
@@ -34,7 +34,7 @@ Server::Server(const Server &other) // Check
     return ;
 }
 
-Server &Server::operator=(const Server & rhs) // Check
+ServerUnit &ServerUnit::operator=(const ServerUnit & rhs) // Check
 {
     if (this != &rhs)
     {
@@ -53,7 +53,7 @@ Server &Server::operator=(const Server & rhs) // Check
     return (*this);
 }
 
-void Server::initErrorPages(void) // Check
+void ServerUnit::initErrorPages(void) // Check
 {
     _error_list[301] = "";
     _error_list[302] = "";
@@ -72,13 +72,13 @@ void Server::initErrorPages(void) // Check
     _error_list[505] = "";
 }
 
-void Server::setServerName(std::string server_name) // Check
+void ServerUnit::setServerName(std::string server_name) // Check
 {
     checkSemicolon(server_name);
     this->_server_name = server_name;
 }
 
-void Server::setHost(std::string token) // Check
+void ServerUnit::setHost(std::string token) // Check
 {
     checkSemicolon(token);
     if (token == "localhost")
@@ -88,7 +88,7 @@ void Server::setHost(std::string token) // Check
     this->_host = inet_addr(token.data());
 }
 
-void Server::setRoot(std::string root) // Check 
+void ServerUnit::setRoot(std::string root) // Check 
 {
     checkSemicolon(root);
     if (ConfigFile::getTypePath(root) == F_DIRECTORY)
@@ -107,7 +107,7 @@ void Server::setRoot(std::string root) // Check
     exit(2);
 }
 
-void Server::setPort(std::string token) // Check 
+void ServerUnit::setPort(std::string token) // Check 
 {
     unsigned int port;
     
@@ -124,7 +124,7 @@ void Server::setPort(std::string token) // Check
     this->_port = (uint16_t) port;
 }
 
-void Server::setClientMaxBodySize(std::string token) // Check
+void ServerUnit::setClientMaxBodySize(std::string token) // Check
 {
     unsigned long body_size;
     
@@ -141,7 +141,7 @@ void Server::setClientMaxBodySize(std::string token) // Check
     this->_client_max_body_size = body_size;
 }
 
-void Server::setIndex(std::string index) //Check 
+void ServerUnit::setIndex(std::string index) //Check 
 {
     checkSemicolon(index);
     // check it does not start with /
@@ -150,7 +150,7 @@ void Server::setIndex(std::string index) //Check
     this->_index = index;
 }
 
-void Server::setAutoindex(std::string autoindex) //Check
+void ServerUnit::setAutoindex(std::string autoindex) //Check
 {
     checkSemicolon(autoindex);
     if (autoindex != "on" && autoindex != "off")
@@ -159,12 +159,12 @@ void Server::setAutoindex(std::string autoindex) //Check
         this->_autoindex = true;
 }
 
-void	Server::setFd(int fd) //Check
+void	ServerUnit::setFd(int fd) //Check
 {
     this->_listen_fd = fd;
 }
 
-void Server::setErrorPages(std::vector<std::string> &token) // Check
+void ServerUnit::setErrorPages(std::vector<std::string> &token) // Check
 {
     if (token.empty())
         return;
@@ -199,7 +199,7 @@ void Server::setErrorPages(std::vector<std::string> &token) // Check
     }
 }
 
-void Server::setLocation(std::string path, std::vector<std::string> token) // Check
+void ServerUnit::setLocation(std::string path, std::vector<std::string> token) // Check
 {
     Location new_location;
 
@@ -408,7 +408,7 @@ int isValidCgiLocation(Location &cgi_location) // Check
     return (0);
 }
 
-int Server::isValidLocation(Location &location) const // Check
+int ServerUnit::isValidLocation(Location &location) const // Check
 {
     if (location.getPathLocation() == CGI_BIN_PATH)
     {
@@ -434,7 +434,7 @@ int Server::isValidLocation(Location &location) const // Check
     return (0);
 }
 
-bool Server::isValidHost(std::string host) const // Check
+bool ServerUnit::isValidHost(std::string host) const // Check
 {
     struct sockaddr_in sockaddr;
     if (inet_pton(AF_INET, host.c_str(), &(sockaddr.sin_addr)))
@@ -443,7 +443,7 @@ bool Server::isValidHost(std::string host) const // Check
         return false;
 }
 
-bool Server::isValidErrorPages() // Check
+bool ServerUnit::isValidErrorPages() // Check
 {
     std::map<short, std::string>::const_iterator it;
     for (it = this->_error_list.begin(); it != this->_error_list.end(); it++)
@@ -456,52 +456,52 @@ bool Server::isValidErrorPages() // Check
     return (true);
 }
 
-const std::string &Server::getServerName() //Check
+const std::string &ServerUnit::getServerName() //Check
 {
     return (this->_server_name);
 }
 
-const std::string &Server::getRoot() //Check
+const std::string &ServerUnit::getRoot() //Check
 {
     return (this->_root);
 }
 
-const bool &Server::getAutoindex() //Check
+const bool &ServerUnit::getAutoindex() //Check
 {
     return (this->_autoindex);
 }
 
-const in_addr_t &Server::getHost() const { return this->_host; }
+const in_addr_t &ServerUnit::getHost() const { return this->_host; }
 
-const uint16_t &Server::getPort() const  { return this->_port; }
+const uint16_t &ServerUnit::getPort() const  { return this->_port; }
 
-const size_t &Server::getClientMaxBodySize() //Check
+const size_t &ServerUnit::getClientMaxBodySize() //Check
 {
     return (this->_client_max_body_size);
 }
 
-const std::vector<Location> &Server::getLocations() //Check
+const std::vector<Location> &ServerUnit::getLocations() //Check
 {
     return (this->_locations);
 }
 
-const std::map<short, std::string> &Server::getErrorPages() //Check
+const std::map<short, std::string> &ServerUnit::getErrorPages() //Check
 {
     return (this->_error_list);
 }
 
-const std::string &Server::getIndex() //Check
+const std::string &ServerUnit::getIndex() //Check
 {
     return (this->_index);
 }
 
-int Server::getFd() const { return this->_listen_fd; }
+int ServerUnit::getFd() const { return this->_listen_fd; }
 
 /**
  * Returns the path of the error page for a given HTTP status code.
  * If no custom error page is set for the given code, an empty string is returned.
  */
-const std::string &Server::getPathErrorPage(short key) // Check
+const std::string &ServerUnit::getPathErrorPage(short key) // Check
 {
     std::map<short, std::string>::iterator it = this->_error_list.find(key);
     if (it == this->_error_list.end())
@@ -512,7 +512,7 @@ const std::string &Server::getPathErrorPage(short key) // Check
     return (it->second);
 }
 
-const std::vector<Location>::iterator Server::getLocationKey(std::string key) // Check 
+const std::vector<Location>::iterator ServerUnit::getLocationKey(std::string key) // Check 
 {
     std::vector<Location>::iterator it;
     for (it = this->_locations.begin(); it != this->_locations.end(); it++)
@@ -526,7 +526,7 @@ const std::vector<Location>::iterator Server::getLocationKey(std::string key) //
 /**
  * 
  */
-void Server::checkSemicolon(std::string &token) // Check 
+void ServerUnit::checkSemicolon(std::string &token) // Check 
 {
     size_t pos = token.rfind(';');
     if (pos != token.size() - 1)
@@ -534,7 +534,7 @@ void Server::checkSemicolon(std::string &token) // Check
     token.erase(pos);
 }
 
-bool Server::checkLocations() const // Check
+bool ServerUnit::checkLocations() const // Check
 {
     if (this->_locations.size() < 2)
         return (false);
@@ -549,7 +549,7 @@ bool Server::checkLocations() const // Check
     return (false);
 }
 
-void Server::setUpIndividualServer()
+void ServerUnit::setUpIndividualServer()
 {
     _listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (_listen_fd == -1)

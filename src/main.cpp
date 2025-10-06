@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     //tests(); // Descomenta para ejecutar pruebas
     std::string config_path;
     ReadConfig config_reader;
-    std::vector<Server> serverGroup;
+    std::vector<ServerUnit> serverGroup;
     ServerManager serverManager;
 
     if (argc > 2) {

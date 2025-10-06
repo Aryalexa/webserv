@@ -26,7 +26,7 @@ int ReadConfig::createServerGroup(const std::string &config_file)
 		throw ErrorException(SIZE_FILE_ERR);
 	for (size_t i = 0; i < this->_nb_server; i++)
 	{
-		Server server;
+		ServerUnit server;
 		createServer(this->_server_config[i], server);
 		logDebug("🍉 Server #%i created", i);
 		this->_servers.push_back(server);
@@ -141,7 +141,7 @@ std::vector<std::string> splitTokens(const std::string& line, const std::string&
 }
 
 
-void ReadConfig::createServer(std::string &config, Server &server)
+void ReadConfig::createServer(std::string &config, ServerUnit &server)
 {
 	std::vector<std::string>	tokens;
 	std::vector<std::string>	error_codes;
@@ -258,8 +258,8 @@ void ReadConfig::createServer(std::string &config, Server &server)
 
 void ReadConfig::checkServers()
 {
-	std::vector<Server>::iterator it1;
-	std::vector<Server>::iterator it2;
+	std::vector<ServerUnit>::iterator it1;
+	std::vector<ServerUnit>::iterator it2;
 
 	for (it1 = this->_servers.begin(); it1 != this->_servers.end() - 1; it1++)
 	{
@@ -271,7 +271,7 @@ void ReadConfig::checkServers()
 	}
 }
 
-std::vector<Server>	ReadConfig::getServers()
+std::vector<ServerUnit>	ReadConfig::getServers()
 {
 	return (this->_servers);
 }

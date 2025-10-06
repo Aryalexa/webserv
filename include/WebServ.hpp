@@ -43,7 +43,7 @@
 #include "paths.hpp"
 #include "logging.hpp"
 #include "statusCode.hpp"
-#include "Server.hpp"
+#include "ServerUnit.hpp"
 #include "Location.hpp"
 #include "ConfigFile.hpp"
 #include "ReadConfig.hpp"

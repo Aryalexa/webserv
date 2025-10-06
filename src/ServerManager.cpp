@@ -19,18 +19,18 @@ ServerManager::ServerManager()
 
 ServerManager::~ServerManager(){}
 
-void ServerManager::setup(const std::vector<Server>& configs) {
+void ServerManager::setup(const std::vector<ServerUnit>& configs) {
 
     _servers = configs;
     logDebug("Setting up %zu server(s)", _servers.size());
     
     for (size_t i = 0; i < _servers.size(); ++i) 
     {
-        Server &server = _servers[i];
+        ServerUnit &server = _servers[i];
         bool reused = false;
 
         for (size_t j = 0; j < i; ++j) {
-            const Server &prev = _servers[j];
+            const ServerUnit &prev = _servers[j];
             if (prev.getHost() == server.getHost() &&
                 prev.getPort() == server.getPort())
             {
@@ -57,7 +57,7 @@ void ServerManager::setup(const std::vector<Server>& configs) {
         );
     }
 }
-void ServerManager::_init_server_unit(Server server) {
+void ServerManager::_init_server_unit(ServerUnit server) {
     // listen
     int fd = server.getFd();
     if (listen(fd, BACKLOG_SIZE) < 0) {
@@ -232,7 +232,7 @@ bool ServerManager::parse_headers(int client_sock, ClientRequest &cr) {
         logError("Could not find server for client socket %d", client_sock);
         return false;
     }
-    Server &server = _servers_map[server_fd];
+    ServerUnit &server = _servers_map[server_fd];
     const Location* loc = _find_best_location(cr.request_path, server.getLocations());
     if (loc)
         cr.max_size = loc->getMaxBodySize();
@@ -336,6 +336,7 @@ void ServerManager::_handle_read(int client_sock) {
                                 ? (cr.current_size - cr.body_start)
                                 : 0;
             if (cr.content_length < 0 || body_bytes >= (size_t)cr.content_length) {
+                logDebug("content_length: %ld, body_bytes: %zu", cr.content_length, body_bytes);
                 logInfo("🐠 Request complete from client socket %d (on close)", client_sock);
                 // last opportunity to respond
                 _write_buffer[client_sock] = prepare_response(client_sock, cr.buffer);
@@ -509,7 +510,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
         throw HttpException(HttpStatusCode::InternalServerError);
     }
 
-    Server &server = _servers_map[server_fd];
+    ServerUnit &server = _servers_map[server_fd];
     std::string path = request.getPath();
     path = path_normalization(clean_path(path));
     
@@ -596,7 +597,7 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
         HttpResponse response(HttpStatusCode::InternalServerError);
         return response.getResponse();
     }
-    Server &server = _servers_map[server_fd];
+    ServerUnit &server = _servers_map[server_fd];
     std::string err_page_path = server.getPathErrorPage(code);
     if (!err_page_path.empty()) {
         logInfo("🍊 Acción: Mostrar página de error %d desde %s", code, err_page_path.c_str());
