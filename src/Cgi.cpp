@@ -82,7 +82,8 @@ std::string Cgi::executeCgi(const Request& req) {
         envp.push_back(NULL);
 
         execve(_scriptPath.c_str(), args, envp.data());
-        exit(EXIT_FAILURE);
+        logError("CGI execve failed: %s", strerror(errno));
+        throw HttpException(HttpStatusCode::InternalServerError);
     } else {
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
