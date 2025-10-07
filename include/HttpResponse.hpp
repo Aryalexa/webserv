@@ -60,6 +60,7 @@ public:
 	void set_allow_methods(const std::string& methods);
 
 	void handle_GET();
+	void handle_POST();
 
 	
 

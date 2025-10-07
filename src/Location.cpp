@@ -24,12 +24,10 @@ Location::Location(const Location &other)
 	this->_root = other._root;
 	this->_autoindex = other._autoindex;
 	this->_index = other._index;
-	this->_cgi_path = other._cgi_path;
-	this->_cgi_ext = other._cgi_ext;
 	this->_return = other._return;
 	this->_alias = other._alias;
     this->_methods = other._methods;
-	this->_ext_path = other._ext_path;
+	this->_cgi_ext_map = other._cgi_ext_map;
 	this->_client_max_body_size = other._client_max_body_size;
 }
 
@@ -41,12 +39,10 @@ Location &Location::operator=(const Location &rhs)
 		this->_root = rhs._root;
 		this->_autoindex = rhs._autoindex;
 		this->_index = rhs._index;
-		this->_cgi_path = rhs._cgi_path;
-		this->_cgi_ext = rhs._cgi_ext;
 		this->_return = rhs._return;
 		this->_alias = rhs._alias;
 		this->_methods = rhs._methods;
-		this->_ext_path = rhs._ext_path;
+		this->_cgi_ext_map = rhs._cgi_ext_map;
 		this->_client_max_body_size = rhs._client_max_body_size;
     }
 	return (*this);
@@ -122,16 +118,6 @@ void Location::setAlias(std::string token)
 	this->_alias = token;
 }
 
-void Location::setCgiPath(std::vector<std::string> path)
-{
-	this->_cgi_path = path;
-}
-
-void Location::setCgiExtension(std::vector<std::string> extension)
-{
-	this->_cgi_ext = extension;
-}
-
 void Location::setMaxBodySize(std::string token)
 {
 	unsigned long body_size = 0;
@@ -172,16 +158,6 @@ const std::vector<short> &Location::getMethods() const
 	return (this->_methods);
 }
 
-const std::vector<std::string> &Location::getCgiPath() const
-{
-	return (this->_cgi_path);
-}
-
-const std::vector<std::string> &Location::getCgiExtension() const
-{
-	return (this->_cgi_ext);
-}
-
 const bool &Location::getAutoindex() const
 {
 	return (this->_autoindex);
@@ -197,9 +173,9 @@ const std::string &Location::getAlias() const
 	return (this->_alias);
 }
 
-const std::map<std::string, std::string> &Location::getExtensionPath() const
+const std::map<std::string, std::string> &Location::getCgiExtMap() const
 {
-	return (this->_ext_path);
+	return (this->_cgi_ext_map);
 }
 
 const unsigned long &Location::getMaxBodySize() const
@@ -225,4 +201,16 @@ std::string Location::getPrintMethods() const
     }
 
     return res;
+}
+
+void Location::addCgiHandler(const std::string &ext, const std::string &path) {
+	_cgi_ext_map[ext] = path;
+}
+
+const std::string &Location::getCgiHandler(const std::string &ext) const {
+    static const std::string empty = "";
+    std::map<std::string, std::string>::const_iterator it = _cgi_ext_map.find(ext);
+    if (it == _cgi_ext_map.end())
+        return empty;
+    return it->second;
 }

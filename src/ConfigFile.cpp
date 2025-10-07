@@ -17,10 +17,12 @@ int ConfigFile::getTypePath(std::string const path)
 	result = stat(path.c_str(), &buffer);
 	if (result == 0)
 	{
-		if (buffer.st_mode & S_IFREG)
+		if (buffer.st_mode & S_IFREG) // regular file
 			return (F_REGULAR_FILE);
-		else if (buffer.st_mode & S_IFDIR)
+		else if (buffer.st_mode & S_IFDIR) // directory
 			return (F_DIRECTORY);
+		else if (buffer.st_mode & S_IXUSR) // user has execute permission
+			return (F_EXECUTABLE);
 		else
 			return (F_OTHER);
 	}
@@ -30,30 +32,40 @@ int ConfigFile::getTypePath(std::string const path)
 
 /**
  * Comprueba permisos con `access()`
- * (F_OK): Comprueba si el archivo existe.
- * (R_OK): Comprueba si el archivo es legible (permiso de lectura).
+ * mode F_OK: Comprueba si el archivo existe.
+ * mode R_OK: Comprueba si el archivo es legible (permiso de lectura).
+ * mode X_OK: Comprueba si el archivo es ejecutable (permiso de ejecución).
  */
 bool	ConfigFile::checkFile(std::string const path, int mode)
 {
 	return (access(path.c_str(), mode) == 0);
 }
 
-/**
- * Test exclusivo para páginas índice.
- * Comprueba si el archivo existe y es legible.
- * Si `index` es un archivo, comprueba si existe y es legible.
- * Si `index` es un directorio, comprueba si existe y es legible.
- * Si `index` es un archivo dentro de `path`, comprueba si existe y es legible.
- * Devuelve `0` si es legible, `-1` si no
- */
 bool ConfigFile::isFileExistAndReadable(std::string const path, std::string const index)
 {
+	// absolute path
 	if (getTypePath(index) == F_REGULAR_FILE
 		&& checkFile(index, R_OK))
 		return (true);
+	// relative path
 	if (getTypePath(path + index) == F_REGULAR_FILE
 		&& checkFile(path + index, R_OK))
 		return (true);
+	
+	return (false);
+}
+
+bool ConfigFile::isFileExistAndExecutable(std::string const path, std::string const exec)
+{
+	// absolute path
+	if (getTypePath(exec) == F_EXECUTABLE
+		&& checkFile(exec, X_OK))
+		return (true);
+	// relative path
+	if (getTypePath(path + exec) == F_EXECUTABLE
+		&& checkFile(path + exec, X_OK))
+		return (true);
+	
 	return (false);
 }
 

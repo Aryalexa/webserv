@@ -525,6 +525,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     const Location *loc = _find_best_location(path, server.getLocations());
     _apply_redirection(loc);
     _apply_location_config(loc, root, index, autoindex, full_path, path, request.getMethod(), used_alias);
+    request.setMatchedLocation(loc);
 
     if (!used_alias)
         full_path = root + path;

@@ -10,16 +10,15 @@
 class Location
 {
 	private:
-		std::string					_path;
-		std::string					_root;
-		bool						_autoindex;
-		std::string					_index;
-		std::vector<short>			_methods;
-		std::string					_return;
-		std::string					_alias;
-		std::vector<std::string>	_cgi_path;
-		std::vector<std::string>	_cgi_ext;
-		unsigned long				_client_max_body_size;
+		std::string							_path;
+		std::string							_root;
+		bool								_autoindex;
+		std::string							_index;
+		std::vector<short>					_methods;
+		std::string							_return;
+		std::string							_alias;
+		unsigned long						_client_max_body_size;
+		std::map<std::string, std::string>	_cgi_ext_map; // map extension -> cgi path
 
 	public:
 		Location();
@@ -27,7 +26,6 @@ class Location
 		Location &operator=(const Location &rhs);
 		~Location();
 
-		std::map<std::string, std::string> _ext_path;
 
 		void                                        setPathLocation(std::string token);
 		void                                        setRootLocation(std::string token);
@@ -36,8 +34,6 @@ class Location
 		void                                        setIndexLocation(std::string token);
 		void                                        setReturn(std::string token);
 		void                                        setAlias(std::string token);
-		void                                        setCgiPath(std::vector<std::string> path);
-		void                                        setCgiExtension(std::vector<std::string> extension);
 		void                                        setMaxBodySize(std::string token);
 		void                                        setMaxBodySize(unsigned long token);
 
@@ -48,12 +44,12 @@ class Location
 		const std::string                           &getIndexLocation() const;
 		const std::string                           &getReturn() const;
 		const std::string                           &getAlias() const;
-		const std::vector<std::string>              &getCgiPath() const;
-		const std::vector<std::string>              &getCgiExtension() const;
-		const std::map<std::string, std::string>    &getExtensionPath() const;
+		const std::map<std::string, std::string>    &getCgiExtMap() const;
 		const unsigned long                         &getMaxBodySize() const;
 		std::string                                 getPrintMethods() const;
 
+		void addCgiHandler(const std::string &ext, const std::string &path);
+		const std::string &getCgiHandler(const std::string &ext) const;
 };
 
 #endif

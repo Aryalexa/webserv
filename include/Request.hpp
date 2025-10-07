@@ -17,6 +17,7 @@ class Request
 		std::list<std::pair<std::string, float> >	_lang;
 		const std::string&							_raw;
 		bool										_autoindex; // to generate index (file list) if no index file found. False by default.
+		const Location*								_matched_location; // best matching location for this request
 
 		/*** PARSING ***/
 		int			read_first_line(const std::string& line);
@@ -52,6 +53,7 @@ class Request
 		const std::string&									getRaw() const;
 		const std::list<std::pair<std::string, float> >&	getLang() const;
 		const bool&											getAutoindex() const;
+		const Location*										getMatchedLocation() const;
 
 		/*** SETTERS **/
 		void	setBody(const std::string& line);
@@ -59,6 +61,7 @@ class Request
 		void	setMethod(const std::string &method);
 		void	setPath(const std::string &new_path);
 		void	setAutoindex(bool ai);
+		void	setMatchedLocation(const Location *loc);
 
 		/*** UTILS ****/
 		int		parse(const std::string& str);

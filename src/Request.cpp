@@ -19,7 +19,7 @@ std::vector<std::string>		Request::init_methods()
 std::vector<std::string>	Request::methods = Request::init_methods();
 
 Request::Request(const std::string& str) :
-	_method (""), _version(""), _ret(200), _body(""), _port(80), _path(""), _query(""), _raw(str), _autoindex(false)
+	_method (""), _version(""), _ret(200), _body(""), _port(80), _path(""), _query(""), _raw(str), _autoindex(false), _matched_location(NULL)
 {
 	this->resetHeaders();
 	this->parse(str);
@@ -102,6 +102,10 @@ const bool&	Request::getAutoindex() const
 	return this->_autoindex;
 }
 
+const Location* Request::getMatchedLocation() const
+{
+	return this->_matched_location;
+}
 /*** SETTERS ***/
 
 void	Request::setBody(const std::string& str)
@@ -141,6 +145,10 @@ void	Request::setAutoindex(bool ai)
 	this->_autoindex = ai;
 }
 
+void	Request::setMatchedLocation(const Location *loc)
+{
+	this->_matched_location = loc;
+}
 void				Request::resetHeaders()
 {
 	this->_headers.clear();

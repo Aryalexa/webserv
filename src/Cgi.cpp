@@ -87,7 +87,7 @@ std::string Cgi::executeCgi(const Request& req) {
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
 
-         write(stdin_pipe[1], req.getBody().data(), req.getBody().size());
+        write(stdin_pipe[1], req.getBody().data(), req.getBody().size());
         close(stdin_pipe[1]); 
 
         char buffer[4096];

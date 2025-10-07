@@ -7,7 +7,8 @@ enum e_file_type {
 	F_NOT_EXIST = -1,
 	F_REGULAR_FILE = 1,
 	F_DIRECTORY = 2,
-	F_OTHER = 3
+	F_EXECUTABLE = 3,
+	F_OTHER = 4
 };
 
 class ConfigFile {
@@ -24,6 +25,7 @@ class ConfigFile {
 		static bool 	checkFile(std::string const path, int mode);
 		std::string		readFile(std::string path);
 		static bool 	isFileExistAndReadable(std::string const path, std::string const index);
+		static bool 	isFileExistAndExecutable(std::string const path, std::string const executable);
 
 		std::string 	getPath();
 		int 			getSize();
