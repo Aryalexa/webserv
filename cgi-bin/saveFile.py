@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import os
 import sys
-from urllib.parse import parse_qs
-from email.message import EmailMessage
 from email import policy
-import io
 from email.parser import BytesParser
+from paths import IMG_DIR
 
 
 def parse_multipart_form_data():
@@ -71,7 +69,7 @@ if "file" in form and isinstance(form["file"], dict):
     if filename:
         safe_filename = os.path.basename(filename)
         # Ruta relativa a la carpeta del script
-        filepath = os.path.join(os.path.dirname(__file__), "../www/file", safe_filename)
+        filepath = os.path.join(IMG_DIR, safe_filename)
         filepath = os.path.abspath(filepath)
 
         try:

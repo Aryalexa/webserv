@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-
 import os
+from paths import IMG_DIR
 
-IMG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../www/file"))
 os.makedirs(IMG_DIR, exist_ok=True)
+
+# return divs with images in IMG_DIR
 
 try:
     files = sorted(os.listdir(IMG_DIR))
