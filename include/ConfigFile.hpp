@@ -7,8 +7,7 @@ enum e_file_type {
 	F_NOT_EXIST = -1,
 	F_REGULAR_FILE = 1,
 	F_DIRECTORY = 2,
-	F_EXECUTABLE = 3,
-	F_OTHER = 4
+	F_OTHER = 3
 };
 
 class ConfigFile {

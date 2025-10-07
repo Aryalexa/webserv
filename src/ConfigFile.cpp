@@ -21,8 +21,6 @@ int ConfigFile::getTypePath(std::string const path)
 			return (F_REGULAR_FILE);
 		else if (buffer.st_mode & S_IFDIR) // directory
 			return (F_DIRECTORY);
-		else if (buffer.st_mode & S_IXUSR) // user has execute permission
-			return (F_EXECUTABLE);
 		else
 			return (F_OTHER);
 	}
@@ -58,11 +56,11 @@ bool ConfigFile::isFileExistAndReadable(std::string const path, std::string cons
 bool ConfigFile::isFileExistAndExecutable(std::string const path, std::string const exec)
 {
 	// absolute path
-	if (getTypePath(exec) == F_EXECUTABLE
+	if (getTypePath(exec) == F_REGULAR_FILE
 		&& checkFile(exec, X_OK))
 		return (true);
 	// relative path
-	if (getTypePath(path + exec) == F_EXECUTABLE
+	if (getTypePath(path + exec) == F_REGULAR_FILE
 		&& checkFile(path + exec, X_OK))
 		return (true);
 	
