@@ -268,7 +268,7 @@ void HttpResponse::generate_autoindex(const Request& request) {
 void HttpResponse::generate_webindex(const Request& request) {
     assert(request.getPath() == DEFAULT_INDEX);
   
-    std::ifstream file(request.getPath());
+    std::ifstream file(request.getPath().c_str());
     if (!file.is_open()) {
       throw HttpException(HttpStatusCode::NotFound);
     }

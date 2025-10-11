@@ -450,7 +450,7 @@ void ServerManager::_handle_directory_case(
     logDebug("🍍 Handling directory case for path: %s", full_path.c_str());
 
     // without trailing slash -> redirect
-    if (request_path.back() != '/') {
+    if (!request_path.empty() && request_path[request_path.size() - 1] != '/') {
         std::string new_location = request_path + "/";
         throw HttpExceptionRedirect(HttpStatusCode::MovedPermanently, new_location);
     }
