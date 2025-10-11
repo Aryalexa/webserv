@@ -287,27 +287,33 @@ void ServerUnit::setLocation(std::string path, std::vector<std::string> tokens) 
             checkSemicolon(tokens[++i]);
             new_location.setAlias(tokens[i]);
         }
-        else if (tokens[i] == CGI && (i + 1) < tokens.size())
+        else if (tokens[i] == CGI)
         {
-            // directive: cgi extension ./cig_path;
-            std::string extension = tokens[++i];
-            if (i + 1 >= tokens.size())
-                throw ErrorException(TOKEN_ERR ": " + tokens[i] + "(missing cgi path)");
-            std::string cgi_path = tokens[++i];
-            checkSemicolon(tokens[++i]);
-            
+            // expected: cgi <extension> <cgi_path> ;
+            if (i + 2 >= tokens.size())
+                throw ErrorException(TOKEN_ERR ": incomplete cgi directive");
+
+            std::string extension = tokens[i + 1];
+            std::string cgi_path  = tokens[i + 2];
+
+            // Validar formato del path con ';' al final
+            checkSemicolon(cgi_path); // verfica y elimina ';' al final
+
             // check syntax
             if (extension.size() < 2 || extension[0] != '.' )
             throw ErrorException(SYNTAX_ERR_CGI_EXT);
             if (cgi_path.size() < 3 || cgi_path[0] != '.' || cgi_path[1] != '/')
-                throw ErrorException(SYNTAX_ERR_CGI_PATH );
+                throw ErrorException(SYNTAX_ERR_CGI_PATH);
+            
+            cgi_path = cgi_path.substr(2); // quitar './' al inicio
 
-            // check if extension is already in the map, if so, throw error
+            // check dups
             if (new_location.getCgiHandler(extension) != "")
                 throw ErrorException(CGI_EXT_DUP_ERR + extension);
             
             // add the asociation to the map in location
             new_location.addCgiHandler(extension, cgi_path);
+            i += 2; // skip the processed tokens
         }
         else if (tokens[i] == CMBS && (i + 1) < tokens.size())
         {
@@ -349,7 +355,7 @@ int isValidCgiLocation(Location &location)
         std::string ext = it->first;
         std::string path = it->second;
         // Check if cgi path file exists and is executable
-        if (!ConfigFile::isFileExistAndExecutable(location.getRootLocation() + location.getPathLocation() + "/", path))				
+        if (!ConfigFile::isFileExistAndExecutable("./", path))				
             return (ER_VAL_CGI_PATH_NONEXE);
     } 
     return (0);
@@ -370,26 +376,46 @@ int ServerUnit::isValidLocation(Location &location) const // Check
     }
     else
     {
+        // logDebug("Validating location: root:%s", location.getRootLocation().c_str());
+        // logDebug("Validating location: path:%s", location.getPathLocation().c_str());
+
         // Location must start with /
         if (location.getPathLocation()[0] != '/')
             return (ER_VAL_LOCATION);
-        // Check path and index
-        if (!location.getIndexLocation().empty())
-        {
-            if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation() + "/", location.getIndexLocation()))
-                return (ER_VAL_INDEX); //check
-        }
-        if (!location.getReturn().empty())
-        {
-            if (!ConfigFile::isFileExistAndReadable(location.getRootLocation(), location.getReturn()))
-                return (ER_VAL_REDIRECT);
-        }
-        if (!location.getAlias().empty())
-        {
-            if (!ConfigFile::isFileExistAndReadable(location.getRootLocation(), location.getAlias()))
-                 return (ER_VAL_ALIAS);
-        }
+
+        // // if root is empty, set it to server root
+        // if (location.getRootLocation().empty())
+        // {
+        //     logDebug("1 setting Root location to: %s", this->_root.c_str());
+        //     location.setRootLocation(this->_root);
+        // }
+        // // root must be a directory
+        // if (ConfigFile::getTypePath(location.getRootLocation()) != F_DIRECTORY)
+        //     return (ER_VAL_LOCATION);
+
+        // if (!location.getIndexLocation().empty())
+        // {
+        //     logDebug("Validating index in location: index:%s", location.getIndexLocation().c_str());
+        //     if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation() + "/", location.getIndexLocation()))
+        //         return (ER_VAL_INDEX); //check
+        // }
+
+        // if (!location.getReturn().empty())
+        // {
+        //     logDebug("Validating location: return:%s", location.getReturn().c_str());
+        //     if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation(), location.getReturn()))
+        //         return (ER_VAL_REDIRECT);
+        // }
+
+
+        // if (!location.getAlias().empty())
+        // {
+        //     logDebug("Validating location: alias:%s", location.getAlias().c_str());
+        //     if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation() + "/", location.getAlias()))
+        //          return (ER_VAL_ALIAS);
+        // }
         int cgi_status = isValidCgiLocation(location);
+
         if (cgi_status != 0)
             return (cgi_status);
     }
@@ -486,7 +512,8 @@ const std::vector<Location>::iterator ServerUnit::getLocationKey(std::string key
 }
 
 /**
- * 
+ * checkSemicolon: Checks if the given token ends with a semicolon
+ * and delete the semicolon.
  */
 void ServerUnit::checkSemicolon(std::string &token) // Check 
 {

@@ -56,12 +56,10 @@ bool ConfigFile::isFileExistAndReadable(std::string const path, std::string cons
 bool ConfigFile::isFileExistAndExecutable(std::string const path, std::string const exec)
 {
 	// absolute path
-	if (getTypePath(exec) == F_REGULAR_FILE
-		&& checkFile(exec, X_OK))
+	if (getTypePath(exec) == F_REGULAR_FILE && checkFile(exec, X_OK))
 		return (true);
 	// relative path
-	if (getTypePath(path + exec) == F_REGULAR_FILE
-		&& checkFile(path + exec, X_OK))
+	if (getTypePath(path + exec) == F_REGULAR_FILE && checkFile(path + exec, X_OK))
 		return (true);
 	
 	return (false);

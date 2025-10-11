@@ -210,7 +210,7 @@ void HttpResponse::handle_POST() {
       return;
     }
     else {
-      logError("No CGI handler for extension: %s", ext.c_str());
+      logError("location: %s has no CGI handler for extension %s", loc->getPathLocation().c_str(), ext.c_str());
       throw HttpException(HttpStatusCode::NotFound);
     }
   }

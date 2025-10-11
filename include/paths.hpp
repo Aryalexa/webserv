@@ -15,7 +15,7 @@ const std::string CGI_BIN = "cgi-bin/";
 // Carpeta para uploads
 const std::string UPLOADS_DIR = WWW_ROOT + "uploads/";
 // Rutas especiales
-const std::string UPLOADS_URI = "/www/uploads";
+const std::string UPLOADS_URI = "www/upload";
 
 std::string		clean_path(const std::string& path);
 std::string		path_normalization(const std::string& path);

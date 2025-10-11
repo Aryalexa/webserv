@@ -10,7 +10,7 @@
 #define SYNTAX_ERR_AUTOINDEX "Syntax Error: autoindex"
 #define SYNTAX_ERR_INDEX "Syntax Error: index"
 #define SYNTAX_ERR_CGI_EXT "Syntax Error: cgi extension must start with . "
-#define SYNTAX_ERR_CGI_PATH "Syntax Error: cgi path must start with . "
+#define SYNTAX_ERR_CGI_PATH "Syntax Error: cgi path must start with ./"
 #define TOKEN_ERR "Error: Invalid Token"
 #define PAGE_ERR_INIT "Error: Page Initialization Failed"
 #define PAGE_ERR_CODE "Error: Code is Invalid"
