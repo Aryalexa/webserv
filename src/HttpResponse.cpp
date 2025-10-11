@@ -209,10 +209,10 @@ void HttpResponse::handle_POST() {
       set_empty_response_alive(HttpStatusCode::Created);
       return;
     }
-    else {
-      logError("location: %s has no CGI handler for extension %s", loc->getPathLocation().c_str(), ext.c_str());
-      throw HttpException(HttpStatusCode::NotFound);
-    }
+    // else {
+    //   logError("location: %s has no CGI handler for extension %s", loc->getPathLocation().c_str(), ext.c_str());
+    //   throw HttpException(HttpStatusCode::NotFound);
+    // }
   }
   if  (_request->getPath() == UPLOADS_URI) {
       if (_request->getBody().empty()) {
@@ -221,14 +221,15 @@ void HttpResponse::handle_POST() {
       logDebug("[DEBUG] Body size: %i", _request->getBody().size());
       Cgi cgi("cgi-bin/saveFile.py");
       std::string cgi_output = cgi.run(*_request);
+      logDebug("[DEBUG] 🎾 CGI output: %s", cgi_output.c_str());
       set_empty_response_alive(HttpStatusCode::Created);
-    } else {
-      _status_line = ResponseStatus(HttpStatusCode::OK);
-      _body = "";
-      _headers.content_type = "text/html";
-      _headers.content_length = to_string(_body.size());
-      _headers.connection = "keep-alive";
-    }
+  } else {
+    _status_line = ResponseStatus(HttpStatusCode::OK);
+    _body = "";
+    _headers.content_type = "text/html";
+    _headers.content_length = to_string(_body.size());
+    _headers.connection = "keep-alive";
+  }
 }
 
 std::string HttpResponse::getResponse() const {
@@ -266,6 +267,7 @@ void HttpResponse::generate_autoindex(const Request& request) {
 
 void HttpResponse::generate_webindex(const Request& request) {
     assert(request.getPath() == DEFAULT_INDEX);
+  
     std::ifstream file(request.getPath());
     if (!file.is_open()) {
       throw HttpException(HttpStatusCode::NotFound);

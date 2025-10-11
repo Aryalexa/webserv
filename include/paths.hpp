@@ -13,7 +13,7 @@ const std::string DEFAULT_INDEX = WWW_ROOT + "index.html";
 // Carpeta para scripts CGI
 const std::string CGI_BIN = "cgi-bin/";
 // Carpeta para uploads
-const std::string UPLOADS_DIR = WWW_ROOT + "uploads/";
+//const std::string UPLOADS_DIR = WWW_ROOT + "uploads/";
 // Rutas especiales
 const std::string UPLOADS_URI = "www/upload";
 

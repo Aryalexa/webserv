@@ -176,11 +176,11 @@ bool ServerManager::_should_close_connection(const std::string& request, const s
     // Check if the request or response contains "Connection: close"
     bool closing = false;
     if (in_str(request, "Connection: close")){
-        logError("🐠 Should close connection. From request");
+        logError("🐠 Closing connection (requested)");
         closing = true;
     } 
     if (in_str(response, "Connection: close")) {
-        logError("🐠 Should close connection. From response");
+        logError("🐠 Closing connection (response)");
         closing = true;
     }
     return closing;
