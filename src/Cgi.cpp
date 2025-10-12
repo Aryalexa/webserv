@@ -25,8 +25,11 @@ void Cgi::setEnvVariables(const Request& req) {
         _envVariables["CONTENT_TYPE"] = req.getHeaders().at("Content-Type");
     if (req.getHeaders().count("Content-Length"))
         _envVariables["CONTENT_LENGTH"] = req.getHeaders().at("Content-Length");
-    else
-        _envVariables["CONTENT_LENGTH"] = std::to_string(req.getBody().size());
+    else {
+        std::ostringstream oss;
+        oss << req.getBody().size();
+        _envVariables["CONTENT_LENGTH"] = oss.str();
+    }
 
     _envVariables["SCRIPT_NAME"] = req.getPath();
     _envVariables["SERVER_PROTOCOL"] = req.getVersion();
@@ -69,7 +72,7 @@ std::string Cgi::executeCgi(const Request& req) {
 
         // Setea variables de entorno
         setEnvVariables(req);
-        char* const args[] = {const_cast<char*>(_scriptPath.c_str()), nullptr};
+        char* const args[] = {const_cast<char*>(_scriptPath.c_str()), NULL};
         
         std::vector<std::string> env_strings;
         std::vector<char*> envp;
@@ -79,15 +82,17 @@ std::string Cgi::executeCgi(const Request& req) {
         for (size_t i = 0; i < env_strings.size(); ++i) {
             envp.push_back(const_cast<char*>(env_strings[i].c_str()));
         }
-        envp.push_back(NULL);
 
-        execve(_scriptPath.c_str(), args, envp.data());
-        exit(EXIT_FAILURE);
+        // Prepare envp as array of char* terminated by NULL
+        envp.push_back(NULL);
+        execve(_scriptPath.c_str(), args, &envp[0]);
+        logError("CGI execve failed: %s", strerror(errno));
+        throw HttpException(HttpStatusCode::InternalServerError);
     } else {
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
 
-         write(stdin_pipe[1], req.getBody().data(), req.getBody().size());
+        write(stdin_pipe[1], req.getBody().data(), req.getBody().size());
         close(stdin_pipe[1]); 
 
         char buffer[4096];
@@ -97,7 +102,7 @@ std::string Cgi::executeCgi(const Request& req) {
         }
 
         close(stdout_pipe[0]);
-        waitpid(pid, nullptr, 0);
+        waitpid(pid, NULL, 0);
     }
     return output;
 }

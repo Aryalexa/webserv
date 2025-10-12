@@ -24,21 +24,7 @@ HttpResponse::HttpResponse(Request *request) : _request(request) {
   if (request->getMethod() == "GET") 
     handle_GET();
   else if (request->getMethod() == "POST") {
-    if  (request->getPath() == "www/upload") {
-      if (request->getBody().empty()) {
-        throw HttpException(HttpStatusCode::BadRequest);
-      }
-      logDebug("[DEBUG] Body size: %i", request->getBody().size());
-      Cgi cgi("cgi-bin/saveFile.py");
-      std::string cgi_output = cgi.run(*request);
-      set_empty_response_alive(HttpStatusCode::Created);
-    } else {
-      _status_line = ResponseStatus(HttpStatusCode::OK);
-      _body = "";
-      _headers.content_type = "text/html";
-      _headers.content_length = to_string(_body.size());
-      _headers.connection = "keep-alive";
-    }
+    handle_POST();
   }
   else if (request->getMethod() == "DELETE" ) {
     if(request->getQuery().empty()) {
@@ -55,18 +41,6 @@ HttpResponse::HttpResponse(Request *request) : _request(request) {
     throw HttpException(HttpStatusCode::NotImplemented);
   }
 
-  /**
-   * Tu servidor no soporta METHOD en absoluto
-   * devolver 501
-   * "Método no implementado por el servidor".
-   */
-  //añadido _headers.location.empty() porque si es una redireccion , el body esta vacio 
-  //(_body.empty() && _headers.location.empty()) quito ambos porque delete no tiene ni location ni body
-  // if (_headers.content_type.empty() || _headers.connection.empty()
-  // || _status_line.code == 0) {
-  //   logError("bad");
-  //   exit(2);
-  // }
 }
 
 std::string get_default_error_page(int errorCode) {
@@ -166,6 +140,7 @@ std::string validate_path(const std::string &path) {
   }
   return path;
 }
+
 std::string discover_content_type(const std::string &filename) {
   std::string content_type;
 
@@ -222,6 +197,41 @@ void HttpResponse::handle_GET() {
   
 }
 
+void HttpResponse::handle_POST() {
+  const Location* loc = _request->getMatchedLocation();
+  if (loc) {
+    std::string ext = getFileExtension(_request->getPath());
+    std::string cgiExec = loc->getCgiHandler(ext);
+    if (!cgiExec.empty()) {
+      // Ejecutar CGI
+      Cgi cgi(cgiExec);
+      std::string cgi_output = cgi.run(*_request);
+      set_empty_response_alive(HttpStatusCode::Created);
+      return;
+    }
+    // else {
+    //   logError("location: %s has no CGI handler for extension %s", loc->getPathLocation().c_str(), ext.c_str());
+    //   throw HttpException(HttpStatusCode::NotFound);
+    // }
+  }
+  if  (_request->getPath() == UPLOADS_URI) {
+      if (_request->getBody().empty()) {
+        throw HttpException(HttpStatusCode::BadRequest);
+      }
+      logDebug("[DEBUG] Body size: %i", _request->getBody().size());
+      Cgi cgi("cgi-bin/saveFile.py");
+      std::string cgi_output = cgi.run(*_request);
+      logDebug("[DEBUG] 🎾 CGI output: %s", cgi_output.c_str());
+      set_empty_response_alive(HttpStatusCode::Created);
+  } else {
+    _status_line = ResponseStatus(HttpStatusCode::OK);
+    _body = "";
+    _headers.content_type = "text/html";
+    _headers.content_length = to_string(_body.size());
+    _headers.connection = "keep-alive";
+  }
+}
+
 std::string HttpResponse::getResponse() const {
   return toString();
 }
@@ -257,7 +267,8 @@ void HttpResponse::generate_autoindex(const Request& request) {
 
 void HttpResponse::generate_webindex(const Request& request) {
     assert(request.getPath() == DEFAULT_INDEX);
-    std::ifstream file(request.getPath());
+  
+    std::ifstream file(request.getPath().c_str());
     if (!file.is_open()) {
       throw HttpException(HttpStatusCode::NotFound);
     }

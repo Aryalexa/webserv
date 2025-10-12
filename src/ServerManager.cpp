@@ -176,11 +176,11 @@ bool ServerManager::_should_close_connection(const std::string& request, const s
     // Check if the request or response contains "Connection: close"
     bool closing = false;
     if (in_str(request, "Connection: close")){
-        logError("🐠 Should close connection. From request");
+        logError("🐠 Closing connection (requested)");
         closing = true;
     } 
     if (in_str(response, "Connection: close")) {
-        logError("🐠 Should close connection. From response");
+        logError("🐠 Closing connection (response)");
         closing = true;
     }
     return closing;
@@ -450,7 +450,7 @@ void ServerManager::_handle_directory_case(
     logDebug("🍍 Handling directory case for path: %s", full_path.c_str());
 
     // without trailing slash -> redirect
-    if (request_path.back() != '/') {
+    if (!request_path.empty() && request_path[request_path.size() - 1] != '/') {
         std::string new_location = request_path + "/";
         throw HttpExceptionRedirect(HttpStatusCode::MovedPermanently, new_location);
     }
@@ -525,6 +525,7 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
     const Location *loc = _find_best_location(path, server.getLocations());
     _apply_redirection(loc);
     _apply_location_config(loc, root, index, autoindex, full_path, path, request.getMethod(), used_alias);
+    request.setMatchedLocation(loc);
 
     if (!used_alias)
         full_path = root + path;

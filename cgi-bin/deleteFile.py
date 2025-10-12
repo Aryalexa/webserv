@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-
 import os
 import sys
 from urllib.parse import parse_qs
+from paths import IMG_DIR
+
 
 def delete_file(filename):
-    base_dir = os.path.join(os.path.dirname(__file__), '..', 'www', 'file')
-    file_path = os.path.abspath(os.path.join(base_dir, filename))
+    file_path = os.path.abspath(os.path.join(IMG_DIR, filename))
     # Prevent directory traversal
-    if not file_path.startswith(os.path.abspath(base_dir)):
+    if not file_path.startswith(os.path.abspath(IMG_DIR)):
         print("Content-Type: text/plain\n")
         print("Invalid file path.")
         return

@@ -20,6 +20,7 @@
 #include <cctype>
 #include <ctime>
 #include <cstdarg>
+#include <cassert>
 
 #include <map>
 #include <set>

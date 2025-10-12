@@ -24,6 +24,7 @@ class ConfigFile {
 		static bool 	checkFile(std::string const path, int mode);
 		std::string		readFile(std::string path);
 		static bool 	isFileExistAndReadable(std::string const path, std::string const index);
+		static bool 	isFileExistAndExecutable(std::string const path, std::string const executable);
 
 		std::string 	getPath();
 		int 			getSize();

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import os
 import cgi
+from paths import IMG_DIR
 
-# Carpeta donde están las imágenes
-IMG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../www/file"))
 
 # Obtener el parámetro 'img' de la query string
 form = cgi.FieldStorage()

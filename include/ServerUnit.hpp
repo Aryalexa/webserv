@@ -9,6 +9,8 @@
 #define SYNTAX_ERR_CLIENT_MAX_SIZE "Syntax Error: client_max_body_size"
 #define SYNTAX_ERR_AUTOINDEX "Syntax Error: autoindex"
 #define SYNTAX_ERR_INDEX "Syntax Error: index"
+#define SYNTAX_ERR_CGI_EXT "Syntax Error: cgi extension must start with . "
+#define SYNTAX_ERR_CGI_PATH "Syntax Error: cgi path must start with ./"
 #define TOKEN_ERR "Error: Invalid Token"
 #define PAGE_ERR_INIT "Error: Page Initialization Failed"
 #define PAGE_ERR_CODE "Error: Code is Invalid"
@@ -24,10 +26,12 @@
 #define ALIAS_ERR_CGI "Error: Alias Not Allowed for CGI"
 #define CMBS_DUP_ERR "Error: Client Max Body Size of Location is Duplicated"
 #define INVLAID_CGI_ERR "Error: cgi_path is Invalid"
+#define CGI_EXT_DUP_ERR "Error: cgi is Duplicated"
 #define CGI_ERR_VALIDATION "Failed CGI Validation"
 #define LOCATION_ERR_VALIDATION "Failed Location Validation"
 #define REDIRECTION_ERR_VALIDATION "Failed Redirection Validation"
 #define ALIAS_ERR_VALIDATION "Failed Alias Validation"
+#define INDEX_ERR_VALIDATION "Failed Index Validation"
 #define ERR_PAGE_ERR "Error: Error Page Does Not Exist"
 #define LOCATION_ERR "Error: Path to Location Not Found"
 #define ERROR_SERV_PARSER "Error in our ServerSetUp: "
@@ -46,12 +50,21 @@
 #define INDEX "index"
 #define RETURN "return"
 #define ALIAS "alias"
-#define CGI_EXIT "cgi_ext"
-#define CGI_PATH "cgi_path"
+#define CGI "cgi" // directive: cgi extension ./cgi_path;
 #define CGI_BIN_PATH "/cgi-bin"
 #define CMBS "client_max_body_size"
 
 class Location;
+
+enum e_err_validation {
+	ER_VAL_CGI = 1,
+	ER_VAL_LOCATION = 2,
+	ER_VAL_REDIRECT = 3,
+	ER_VAL_ALIAS = 4,
+	ER_VAL_INDEX = 5,
+	ER_VAL_CGI_PATH_NONEXE = 6,
+
+};
 
 class ServerUnit
 {

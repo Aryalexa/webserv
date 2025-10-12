@@ -261,3 +261,14 @@ bool ci_equal(const std::string& a, const std::string& b) {
 	}
 	return true;
 }
+
+/**
+ * Get the file extension from a given path.
+ * Ex: "/path/to/file.txt" -> ".txt"
+ */
+std::string getFileExtension(const std::string &path) {
+    size_t pos = path.find_last_of('.');
+    if (pos == std::string::npos)
+        return "";
+    return path.substr(pos);
+}

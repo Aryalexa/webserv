@@ -199,7 +199,7 @@ void ServerUnit::setErrorPages(std::vector<std::string> &token) // Check
     }
 }
 
-void ServerUnit::setLocation(std::string path, std::vector<std::string> token) // Check
+void ServerUnit::setLocation(std::string path, std::vector<std::string> tokens) // Check
 {
     Location new_location;
 
@@ -210,201 +210,154 @@ void ServerUnit::setLocation(std::string path, std::vector<std::string> token) /
     int valid;
 
     new_location.setPathLocation(path);
-    for (size_t i = 0; i < token.size(); i++)
+    for (size_t i = 0; i < tokens.size(); i++)
     {
-        if (token[i] == ROOT && (i + 1) < token.size())
+        if (tokens[i] == ROOT && (i + 1) < tokens.size())
         {
             if (!new_location.getRootLocation().empty())
                 throw ErrorException(ROOT_DUP_ERR);
-            checkSemicolon(token[++i]);
-            if (ConfigFile::getTypePath(token[i]) == F_DIRECTORY)
-                new_location.setRootLocation(token[i]);
+            checkSemicolon(tokens[++i]);
+            if (ConfigFile::getTypePath(tokens[i]) == F_DIRECTORY)
+                new_location.setRootLocation(tokens[i]);
             else
             {
-                logDebug("setting Root location to: %s", token[i].c_str());
+                logDebug("setting Root location to: %s", tokens[i].c_str());
                 exit(1) ; // TODO: quiero entender esto          
-                new_location.setRootLocation(this->_root + token[i]);
+                new_location.setRootLocation(this->_root + tokens[i]);
             }
         }
-        else if ((token[i] == ALLOW_METHODS || token[i] == METHODS) && (i + 1) < token.size())
+        else if ((tokens[i] == ALLOW_METHODS || tokens[i] == METHODS) && (i + 1) < tokens.size())
         {
             if (flag_methods)
                 throw ErrorException(METHODS_DUP_ERR);
             std::vector<std::string> methods;
-            while (++i < token.size())
+            while (++i < tokens.size())
             {
-                if (token[i].find(";") != std::string::npos)
+                if (tokens[i].find(";") != std::string::npos)
                 {
-                    checkSemicolon(token[i]);
-                    methods.push_back(token[i]);
+                    checkSemicolon(tokens[i]);
+                    methods.push_back(tokens[i]);
                     break ;
                 }
                 else
                 {
-                    methods.push_back(token[i]);
-                    if (i + 1 >= token.size())
-                        throw ErrorException(TOKEN_ERR ": " + token[i] + "(missing semicolon)");    
+                    methods.push_back(tokens[i]);
+                    if (i + 1 >= tokens.size())
+                        throw ErrorException(TOKEN_ERR ": " + tokens[i] + "(missing semicolon)");    
                 }
             }
             new_location.setMethods(methods);
             flag_methods = true;
         }
-        else if (token[i] == AUTOINDEX && (i + 1) < token.size())
+        else if (tokens[i] == AUTOINDEX && (i + 1) < tokens.size())
         {
             if (path == CGI_BIN_PATH)
-                throw ErrorException(AUTOINDEX_ERR ": cannot be set for cgi-bin");
+                throw ErrorException(AUTOINDEX_ERR ": cannot use cgi-bin");
             if (flag_autoindex)
                 throw ErrorException(AUTOINDEX_DUP_ERR);
-            checkSemicolon(token[++i]);
-            new_location.setAutoindex(token[i]);
+            checkSemicolon(tokens[++i]);
+            new_location.setAutoindex(tokens[i]);
             flag_autoindex = true;
         }
-        else if (token[i] == INDEX && (i + 1) < token.size())
+        else if (tokens[i] == INDEX && (i + 1) < tokens.size())
         {
             if (!new_location.getIndexLocation().empty())
                 throw ErrorException(INDEX_DUP_ERR);
-            checkSemicolon(token[++i]);
+            checkSemicolon(tokens[++i]);
             // check it does not start with /
-            if (token[i][0] == '/')
+            if (tokens[i][0] == '/')
                 throw ErrorException(SYNTAX_ERR_INDEX ": cannot start with /");
-            new_location.setIndexLocation(token[i]);
+            new_location.setIndexLocation(tokens[i]);
         }
-        else if (token[i] == RETURN && (i + 1) < token.size())
+        else if (tokens[i] == RETURN && (i + 1) < tokens.size())
         {
             if (path == CGI_BIN_PATH)
                 throw ErrorException(RETURN_ERR_CGI);
             if (!new_location.getReturn().empty())
                 throw ErrorException(RETURN_DUP_ERR);
-            checkSemicolon(token[++i]);
-            new_location.setReturn(token[i]);
+            checkSemicolon(tokens[++i]);
+            new_location.setReturn(tokens[i]);
         }
-        else if (token[i] == ALIAS && (i + 1) < token.size())
+        else if (tokens[i] == ALIAS && (i + 1) < tokens.size())
         {
             if (path == CGI_BIN_PATH)
                 throw ErrorException(ALIAS_ERR_CGI);
             if (!new_location.getAlias().empty())
                 throw ErrorException(ALIAS_DUP_ERR);
-            checkSemicolon(token[++i]);
-            new_location.setAlias(token[i]);
+            checkSemicolon(tokens[++i]);
+            new_location.setAlias(tokens[i]);
         }
-        else if (token[i] == CGI_EXIT && (i + 1) < token.size())
+        else if (tokens[i] == CGI)
         {
-            std::vector<std::string> extension;
-            while (++i < token.size())
-            {
-                if (token[i].find(";") != std::string::npos)
-                {
-                    checkSemicolon(token[i]);
-                    extension.push_back(token[i]);
-                    break ;
-                }
-                else
-                {
-                    extension.push_back(token[i]);
-                    if (i + 1 >= token.size())
-                        throw ErrorException(TOKEN_ERR ": " + token[i] + "(missing semicolon)");
-                }
-            }
-            new_location.setCgiExtension(extension);
+            // expected: cgi <extension> <cgi_path> ;
+            if (i + 2 >= tokens.size())
+                throw ErrorException(TOKEN_ERR ": incomplete cgi directive");
+
+            std::string extension = tokens[i + 1];
+            std::string cgi_path  = tokens[i + 2];
+
+            // Validar formato del path con ';' al final
+            checkSemicolon(cgi_path); // verfica y elimina ';' al final
+
+            // check syntax
+            if (extension.size() < 2 || extension[0] != '.' )
+            throw ErrorException(SYNTAX_ERR_CGI_EXT);
+            if (cgi_path.size() < 3 || cgi_path[0] != '.' || cgi_path[1] != '/')
+                throw ErrorException(SYNTAX_ERR_CGI_PATH);
+            
+            cgi_path = cgi_path.substr(2); // quitar './' al inicio
+
+            // check dups
+            if (new_location.getCgiHandler(extension) != "")
+                throw ErrorException(CGI_EXT_DUP_ERR + extension);
+            
+            // add the asociation to the map in location
+            new_location.addCgiHandler(extension, cgi_path);
+            i += 2; // skip the processed tokens
         }
-        else if (token[i] == CGI_PATH && (i + 1) < token.size())
-        {
-            std::vector<std::string> path;
-            while (++i < token.size())
-            {
-                if (token[i].find(";") != std::string::npos)
-                {
-                    checkSemicolon(token[i]);
-                    path.push_back(token[i]);
-                    break ;
-                }
-                else
-                {
-                    path.push_back(token[i]);
-                    if (i + 1 >= token.size())
-                        throw ErrorException( ": " + token[i]);
-                }
-                if (token[i].find("/python") == std::string::npos && token[i].find("/bash") == std::string::npos)
-                    throw ErrorException(INVLAID_CGI_ERR);
-            }
-            new_location.setCgiPath(path);
-        }
-        else if (token[i] == CMBS && (i + 1) < token.size())
+        else if (tokens[i] == CMBS && (i + 1) < tokens.size())
         {
             if (flag_max_size)
                 throw ErrorException(CMBS_DUP_ERR);
-            checkSemicolon(token[++i]);
-            new_location.setMaxBodySize(token[i]);
+            checkSemicolon(tokens[++i]);
+            new_location.setMaxBodySize(tokens[i]);
             flag_max_size = true;
         }
-        else if (i < token.size())
-            throw ErrorException(TOKEN_ERR ": " + token[i] + "(unknown token)");
+        else if (i < tokens.size())
+            throw ErrorException(TOKEN_ERR ": " + tokens[i] + "(unknown token)");
     }
     // if (new_location.getPathLocation() != CGI_BIN_PATH && new_location.getIndexLocation().empty())
     //     new_location.setIndexLocation(this->_index);
     if (!flag_max_size)
         new_location.setMaxBodySize(this->_client_max_body_size);
     valid = isValidLocation(new_location);
-    if (valid == 1)
+    if (valid == ER_VAL_CGI)
         throw ErrorException(CGI_ERR_VALIDATION);
-    else if (valid == 2)
+    else if (valid == ER_VAL_CGI_PATH_NONEXE)
+        throw ErrorException(CGI_ERR_VALIDATION ": cgi path does not exist or is not executable");
+    else if (valid == ER_VAL_LOCATION)
         throw ErrorException(LOCATION_ERR_VALIDATION);
-    else if (valid == 3)
+    else if (valid == ER_VAL_REDIRECT)
         throw ErrorException(REDIRECTION_ERR_VALIDATION);
-    else if (valid == 4)
+    else if (valid == ER_VAL_ALIAS)
         throw ErrorException(ALIAS_ERR_VALIDATION);
+    else if (valid == ER_VAL_INDEX) // check
+        throw ErrorException(INDEX_ERR_VALIDATION);
     this->_locations.push_back(new_location);
 }
 
-int isValidCgiLocation(Location &cgi_location) // Check
+int isValidCgiLocation(Location &location)
 {
-    if (cgi_location.getCgiPath().empty() || cgi_location.getCgiExtension().empty() || cgi_location.getIndexLocation().empty())
-        return (1);
-
-    if (!ConfigFile::checkFile(cgi_location.getIndexLocation(), R_OK))
-    {
-        std::string path = cgi_location.getRootLocation() + cgi_location.getPathLocation() + "/" + cgi_location.getIndexLocation();
-        if (ConfigFile::getTypePath(path) != F_REGULAR_FILE)
-        {				
-            std::string root = getcwd(NULL, 0);
-            logDebug("2 setting Root location to: %s", cgi_location.getRootLocation().c_str());
-            cgi_location.setRootLocation(root);
-            path = root + cgi_location.getPathLocation() + "/" + cgi_location.getIndexLocation();
-        }
-        if (path.empty() || ConfigFile::getTypePath(path) != F_REGULAR_FILE || !ConfigFile::checkFile(path, R_OK))
-            return (1);
-    }
-    if (cgi_location.getCgiPath().size() != cgi_location.getCgiExtension().size())
-        return (1);
-    std::vector<std::string>::const_iterator it;
-    for (it = cgi_location.getCgiPath().begin(); it != cgi_location.getCgiPath().end(); ++it)
-    {
-        if (ConfigFile::getTypePath(*it) < 0)
-            return (1);
-    }
-    std::vector<std::string>::const_iterator it_path;
-    for (it = cgi_location.getCgiExtension().begin(); it != cgi_location.getCgiExtension().end(); ++it)
-    {
-        std::string tmp = *it;
-        if (tmp != ".py" && tmp != ".sh" && tmp != "*.py" && tmp != "*.sh")
-            return (1);
-        for (it_path = cgi_location.getCgiPath().begin(); it_path != cgi_location.getCgiPath().end(); ++it_path)
-        {
-            std::string tmp_path = *it_path;
-            if (tmp == ".py" || tmp == "*.py")
-            {
-                if (tmp_path.find("python") != std::string::npos)
-                    cgi_location._ext_path.insert( std::make_pair(std::string(".py"), tmp_path) );
-            }
-            else if (tmp == ".sh" || tmp == "*.sh")
-            {
-                if (tmp_path.find("bash") != std::string::npos)
-                    cgi_location._ext_path[".sh"] = tmp_path;
-            }
-        }
-    }
-    if (cgi_location.getCgiPath().size() != cgi_location.getExtensionPath().size())
-        return (1);   
+    // for each extension and cgi path, check if they are valid
+    const std::map<std::string, std::string> &ext_map = location.getCgiExtMap();
+    std::map<std::string, std::string>::const_iterator it;
+    for (it = ext_map.begin(); it != ext_map.end(); ++it) {
+        std::string ext = it->first;
+        std::string path = it->second;
+        // Check if cgi path file exists and is executable
+        if (!ConfigFile::isFileExistAndExecutable("./", path))				
+            return (ER_VAL_CGI_PATH_NONEXE);
+    } 
     return (0);
 }
 
@@ -412,24 +365,59 @@ int ServerUnit::isValidLocation(Location &location) const // Check
 {
     if (location.getPathLocation() == CGI_BIN_PATH)
     {
-        return isValidCgiLocation(location);
+        // Special validation for cgi-bin location
+        /**
+         * case:
+         * location /cgi-bin/ {...
+         */
+        logError("Validating cgi-bin location: not supported");
+        exit(1);
+
     }
     else
     {
+        // logDebug("Validating location: root:%s", location.getRootLocation().c_str());
+        // logDebug("Validating location: path:%s", location.getPathLocation().c_str());
+
+        // Location must start with /
         if (location.getPathLocation()[0] != '/')
-            return (2);
-        if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation() + "/", location.getIndexLocation()))
-            return (5); //check
-        if (!location.getReturn().empty())
-        {
-            if (!ConfigFile::isFileExistAndReadable(location.getRootLocation(), location.getReturn()))
-                return (3);
-        }
-        if (!location.getAlias().empty())
-        {
-            if (!ConfigFile::isFileExistAndReadable(location.getRootLocation(), location.getAlias()))
-                 return (4);
-        }
+            return (ER_VAL_LOCATION);
+
+        // // if root is empty, set it to server root
+        // if (location.getRootLocation().empty())
+        // {
+        //     logDebug("1 setting Root location to: %s", this->_root.c_str());
+        //     location.setRootLocation(this->_root);
+        // }
+        // // root must be a directory
+        // if (ConfigFile::getTypePath(location.getRootLocation()) != F_DIRECTORY)
+        //     return (ER_VAL_LOCATION);
+
+        // if (!location.getIndexLocation().empty())
+        // {
+        //     logDebug("Validating index in location: index:%s", location.getIndexLocation().c_str());
+        //     if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation() + "/", location.getIndexLocation()))
+        //         return (ER_VAL_INDEX); //check
+        // }
+
+        // if (!location.getReturn().empty())
+        // {
+        //     logDebug("Validating location: return:%s", location.getReturn().c_str());
+        //     if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation(), location.getReturn()))
+        //         return (ER_VAL_REDIRECT);
+        // }
+
+
+        // if (!location.getAlias().empty())
+        // {
+        //     logDebug("Validating location: alias:%s", location.getAlias().c_str());
+        //     if (!ConfigFile::isFileExistAndReadable(location.getRootLocation() + location.getPathLocation() + "/", location.getAlias()))
+        //          return (ER_VAL_ALIAS);
+        // }
+        int cgi_status = isValidCgiLocation(location);
+
+        if (cgi_status != 0)
+            return (cgi_status);
     }
     return (0);
 }
@@ -524,7 +512,8 @@ const std::vector<Location>::iterator ServerUnit::getLocationKey(std::string key
 }
 
 /**
- * 
+ * checkSemicolon: Checks if the given token ends with a semicolon
+ * and delete the semicolon.
  */
 void ServerUnit::checkSemicolon(std::string &token) // Check 
 {
