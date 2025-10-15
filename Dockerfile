@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     curl \
+    python3 \
+    python3-pip \
     libc6 \
     libstdc++6 \
     ca-certificates \
@@ -21,6 +23,7 @@ COPY config/ config/
 COPY include/ include/
 COPY src/ src/
 COPY www/ www/
+COPY YoupiBanane/ YoupiBanane/
 COPY Makefile .
 COPY ub_cgi_tester cgi_tester
 COPY ub_tester tester
