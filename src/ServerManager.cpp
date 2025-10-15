@@ -469,6 +469,36 @@ bool ServerManager::_drain_request_body(int client_sock, ClientRequest &cr) {
     // Nothing to drain
     return true;
 }
+/**
+ * If the request has a body (chunked or content-length), try to read and discard it.
+ * Returns true if the body was fully drained (or there was no body to drain).
+ * Returns false if draining failed (error, timeout, incomplete).
+ * If true is returned, the response string is adjusted to remove "Connection: close"
+ * so that the connection can be reused.
+ */
+bool ServerManager::_try_drain_and_adjust_response(int client_socket, std::string &response_str) {
+    // get ClientRequest
+    std::map<int, ClientRequest>::iterator it = _read_requests.find(client_socket);
+    if (it == _read_requests.end()) return false;
+    ClientRequest &cr = it->second;
+    // If there is no body to drain, nothing to do
+    if (!(cr.is_chunked || cr.content_length >= 0)) return true;
+
+    logDebug("Attempting to drain request body for client %d", client_socket);
+    bool drained = _drain_request_body(client_socket, cr);
+    if (!drained) {
+        logDebug("Draining failed for client %d; will close connection after response", client_socket);
+        return false;
+    }
+    // We consumed it: reset request state and remove Connection: close from response
+    cr.buffer.clear(); cr.current_size = 0; cr.header_end = std::string::npos;
+    cr.body_start = 0; cr.content_length = -1; cr.headers_parsed = false; cr.is_chunked = false;
+    size_t pos = response_str.find("Connection: close");
+    if (pos != std::string::npos) {
+        response_str.erase(pos, strlen("Connection: close"));
+    }
+    return true;
+}
 
 const Location* ServerManager::_find_best_location(const std::string& request_path, const std::vector<Location> &locations) const{
     const Location* best_match = NULL;
@@ -661,34 +691,8 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
         response_str = response.getResponse();
         logInfo("response_str not allowed ok");
         logDebug("response:\n%s\n-----", response_str.c_str());
-        // Try to drain the request body if present so we can keep the
-        // connection alive. If draining fails, we'll keep the response's
-        // Connection: close behavior and close the socket after sending.
-        std::map<int, ClientRequest>::iterator it = _read_requests.find(client_socket);
-        bool drained = false;
-        if (it != _read_requests.end()) {
-            ClientRequest &cr = it->second;
-            if (cr.is_chunked || cr.content_length >= 0) {
-                logDebug("Attempting to drain request body for client %d", client_socket);
-                drained = _drain_request_body(client_socket, cr);
-                if (drained) {
-                    // clear any buffer state since we consumed it
-                    cr.buffer.clear(); cr.current_size = 0; cr.header_end = std::string::npos;
-                    cr.body_start = 0; cr.content_length = -1; cr.headers_parsed = false; cr.is_chunked = false;
-                    // remove Connection: close from response string so _should_close_connection won't close
-                    size_t pos = response_str.find("Connection: close");
-                    if (pos != std::string::npos) {
-                        response_str.erase(pos, strlen("Connection: close"));
-                    }
-                    // normalize CRLFs (remove extra empty header line if needed)
-                } else {
-                    logDebug("Draining failed for client %d; will close connection after response", client_socket);
-                }
-            } else {
-                // no body to drain
-                drained = true;
-            }
-        }
+        // encapsulate drain-and-adjust logic in helper
+        _try_drain_and_adjust_response(client_socket, response_str);
     } catch (const HttpException &e) {
         int code = e.getStatusCode();
         logError("HTTP Exception caught: %s, code %d", e.what(), code);
