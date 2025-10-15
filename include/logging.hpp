@@ -7,6 +7,8 @@
 #define GREEN "\x1B[32m"
 
 #define DEBUG 1
+#define USE_COLOR 0
+#define USE_DATE 1
 
 
 void logDebug(const char* msg, ...);

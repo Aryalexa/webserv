@@ -12,7 +12,7 @@ class Location
 	private:
 		std::string							_path;
 		std::string							_root;
-		bool								_autoindex;
+		bool								_autoindex; // default; off - no listing, use index or 403
 		std::string							_index;
 		std::vector<short>					_methods;
 		std::string							_return;

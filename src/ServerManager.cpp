@@ -3,9 +3,9 @@
 bool ServerManager::_running = true; // Initialize the static running variable
 
 ClientRequest::ClientRequest()
-    : buffer(""), max_size(0), current_size(0), content_length(-1),
-      header_end(std::string::npos), body_start(0),
-      request_path(""), method(""), headers_parsed(false) {}
+        : buffer(""), max_size(0), current_size(0), content_length(-1), is_chunked(false),
+            header_end(std::string::npos), body_start(0),
+            request_path(""), method(""), headers_parsed(false) {}
 
 void ClientRequest::append_to_buffer(const std::string& chunk) {
     buffer += chunk;
@@ -150,6 +150,20 @@ void ServerManager::_handle_new_connection(int listening_socket) {
 void ServerManager::_handle_write(int client_sock) {
 
     std::string remaining_response = _write_buffer[client_sock].substr(_bytes_sent[client_sock]);
+    /*
+    // Be defensive: if for any reason _bytes_sent is larger than buffer size,
+    // clamp it to avoid std::out_of_range (which yields "basic_string" exceptions).
+    size_t offset = 0;
+    std::map<int, std::string>::iterator wb_it = _write_buffer.find(client_sock);
+    if (wb_it != _write_buffer.end()) {
+        size_t buf_size = wb_it->second.size();
+        size_t sent = 0;
+        std::map<int, size_t>::iterator bs_it = _bytes_sent.find(client_sock);
+        if (bs_it != _bytes_sent.end()) sent = bs_it->second;
+        offset = (sent > buf_size) ? buf_size : sent;
+    }
+    std::string remaining_response = _write_buffer[client_sock].substr(offset);
+    */
     logInfo("🐠 Sending response to client socket %d", client_sock);
     size_t n = send(client_sock, remaining_response.c_str(), remaining_response.size(), 0);
 
@@ -221,6 +235,13 @@ bool ServerManager::parse_headers(int client_sock, ClientRequest &cr) {
             if (ci_equal(key, "Content-Length")) {
                 cr.content_length = strtol(val.c_str(), NULL, 10);
                 if (cr.content_length < 0) cr.content_length = -1;
+            }
+            if (ci_equal(key, "Transfer-Encoding")) {
+                std::string lower = val;
+                to_lower(lower);
+                if (lower.find("chunked") != std::string::npos) {
+                    cr.is_chunked = true;
+                }
             }
             // Si quieres, aquí puedes detectar "Transfer-Encoding: chunked" y rechazarlo.
         }
@@ -377,6 +398,76 @@ bool ServerManager::_request_complete(const ClientRequest& clrequest) {
     size_t body_size = clrequest.current_size - body_start;
 
     return body_size >= (size_t)content_length;
+}
+
+// Check if buffer contains the terminating chunk ("0\r\n") for chunked bodies
+bool buffer_has_final_chunk(const std::string &buffer) {
+    // Search for "\r\n0\r\n" or start-of-buffer "0\r\n"
+    if (buffer.find("\r\n0\r\n") != std::string::npos) return true;
+    if (buffer.size() >= 3) {
+        // also allow if buffer ends with "0\r\n" without leading CRLF
+        size_t len = buffer.size();
+        if (buffer.substr(len - 3) == "0\r\n") return true;
+    }
+    return false;
+}
+
+// Drain remaining body from socket for chunked or content-length requests.
+// Returns true if successfully drained (or there was nothing to drain), false on error/timeout.
+bool ServerManager::_drain_request_body(int client_sock, ClientRequest &cr) {
+    char buf[BUFFER_SIZE];
+    int n;
+    // If we already have the terminating chunk in the buffer, nothing to read
+    if (cr.is_chunked && buffer_has_final_chunk(cr.buffer))
+        return true;
+
+    // If content-length known: read until we have all bytes
+    if (cr.content_length >= 0) {
+        size_t body_start = cr.body_start;
+        size_t have = (cr.current_size > body_start) ? (cr.current_size - body_start) : 0;
+        long remaining = cr.content_length - (long)have;
+        while (remaining > 0) {
+            n = recv(client_sock, buf, sizeof(buf), 0);
+            if (n > 0) {
+                remaining -= n;
+            } else if (n == 0) {
+                // client closed early
+                return false;
+            } else {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    // no more data now; give up
+                    return false;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // If chunked: read until we see the terminating chunk 0\r\n
+    if (cr.is_chunked) {
+        std::string tmp;
+        while (true) {
+            n = recv(client_sock, buf, sizeof(buf), 0);
+            if (n > 0) {
+                tmp.append(buf, n);
+                if (buffer_has_final_chunk(tmp)) return true;
+                // continue reading
+                continue;
+            } else if (n == 0) {
+                // client closed; check if tmp had final chunk
+                return buffer_has_final_chunk(tmp);
+            } else {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    // no more data now
+                    return false;
+                }
+                return false;
+            }
+        }
+    }
+    // Nothing to drain
+    return true;
 }
 
 const Location* ServerManager::_find_best_location(const std::string& request_path, const std::vector<Location> &locations) const{
@@ -570,6 +661,34 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
         response_str = response.getResponse();
         logInfo("response_str not allowed ok");
         logDebug("response:\n%s\n-----", response_str.c_str());
+        // Try to drain the request body if present so we can keep the
+        // connection alive. If draining fails, we'll keep the response's
+        // Connection: close behavior and close the socket after sending.
+        std::map<int, ClientRequest>::iterator it = _read_requests.find(client_socket);
+        bool drained = false;
+        if (it != _read_requests.end()) {
+            ClientRequest &cr = it->second;
+            if (cr.is_chunked || cr.content_length >= 0) {
+                logDebug("Attempting to drain request body for client %d", client_socket);
+                drained = _drain_request_body(client_socket, cr);
+                if (drained) {
+                    // clear any buffer state since we consumed it
+                    cr.buffer.clear(); cr.current_size = 0; cr.header_end = std::string::npos;
+                    cr.body_start = 0; cr.content_length = -1; cr.headers_parsed = false; cr.is_chunked = false;
+                    // remove Connection: close from response string so _should_close_connection won't close
+                    size_t pos = response_str.find("Connection: close");
+                    if (pos != std::string::npos) {
+                        response_str.erase(pos, strlen("Connection: close"));
+                    }
+                    // normalize CRLFs (remove extra empty header line if needed)
+                } else {
+                    logDebug("Draining failed for client %d; will close connection after response", client_socket);
+                }
+            } else {
+                // no body to drain
+                drained = true;
+            }
+        }
     } catch (const HttpException &e) {
         int code = e.getStatusCode();
         logError("HTTP Exception caught: %s, code %d", e.what(), code);

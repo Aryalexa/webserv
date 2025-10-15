@@ -9,8 +9,10 @@ sleep 3
 
 echo "[INFO] Iniciando tester interactivo..."
 ./tester http://localhost:8001
-
 echo "[INFO] Tester terminado. Cerrando servidor..."
+
+sleep 3
+
 kill $SERVER_PID
 wait $SERVER_PID
 

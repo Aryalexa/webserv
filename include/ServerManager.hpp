@@ -12,6 +12,7 @@ struct ClientRequest {
     size_t      max_size;     // límite efectivo (location o server); 0 = ilimitado
     size_t      current_size; // bytes totales recibidos (headers + body)
     long        content_length; // -1 si no hay Content-Length
+    bool        is_chunked;    // true si Transfer-Encoding: chunked
     size_t      header_end;   // posición de "\r\n\r\n" (fin de headers) en buffer
     size_t      body_start;   // header_end + 4
     std::string request_path; // para elegir location
@@ -47,6 +48,7 @@ class ServerManager {
         void _init_server_unit(ServerUnit server);
         int _get_client_server_fd(int client_socket) const;
         bool parse_headers(int client_sock, ClientRequest &cr);
+        bool _drain_request_body(int client_sock, ClientRequest &cr);
 
         
         void resolve_path(Request &request, int client_socket);
