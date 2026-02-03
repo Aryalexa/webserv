@@ -663,6 +663,15 @@ void ServerManager::resolve_path(Request &request, int client_socket) {
 std::string ServerManager::prepare_response(int client_socket, const std::string &request_str) {
     std::string response_str;
 
+    // Extraer método desde request_str para manejar HEAD
+    std::string request_method;
+  size_t first_line_end = request_str.find("\r\n");
+    if (first_line_end != std::string::npos) {
+        size_t sp = request_str.find(' ');
+        if (sp != std::string::npos && sp < first_line_end)
+            request_method = request_str.substr(0, sp);
+    }
+
     try {
         logDebug("\n----------\n⛺️Parsing request:\n%s", request_str.c_str());
         Request request(request_str);
@@ -704,7 +713,40 @@ std::string ServerManager::prepare_response(int client_socket, const std::string
         // raise exc?
         logError("Exception: %s", e.what());
         //int code = HttpStatusCode::InternalServerError; // Default to 500 Internal Server
-        exit(1);
+        // exit(1);
+        //logError("Unhandled exception in prepare_response: %s", e.what());
+        // Build a 500 response instead of exiting the process
+        try {
+            response_str = prepare_error_response(client_socket, HttpStatusCode::InternalServerError);
+        } catch (...) {
+            // Fallback minimal response if prepare_error_response falla
+            response_str =
+                "HTTP/1.1 500 Internal Server Error\r\n"
+                "Content-Type: text/html\r\n"
+                "Connection: close\r\n\r\n"
+                "<h1>500 Internal Server Error</h1>";
+        }
+    }
+    /* logError("Edu");
+    if (!request_method.empty()) {
+        std::string method_up = request_method;
+        for (size_t i = 0; i < method_up.size(); ++i) method_up[i] = toupper(method_up[i]);
+        if (method_up == "HEAD") {
+            size_t hdr_end = response_str.find("\r\n\r\n");
+            if (hdr_end != std::string::npos) {
+                response_str = response_str.substr(0, hdr_end + 4);
+            }
+        }
+    } */
+    if (!request_method.empty()) {
+        std::string method_up = request_method;
+        for (size_t i = 0; i < method_up.size(); ++i) method_up[i] = toupper(method_up[i]);
+        if (method_up == "HEAD") {
+            size_t hdr_end = response_str.find("\r\n\r\n");
+            if (hdr_end != std::string::npos) {
+                response_str = response_str.substr(0, hdr_end + 4);
+            }
+        }
     }
     logInfo("Done\n----------");
     return response_str;
@@ -745,7 +787,8 @@ std::string ServerManager::prepare_error_response(int client_socket, int code) {
             break;
         case HttpStatusCode::InternalServerError:
             logError("Error. %s. Acción: Revisar los registros del servidor.", message.c_str());
-            exit(2);
+            //con este exit se sale cuando haces una peticion de HEAD que no esta permisitido y sale de programa
+            //exit(2);
             break;
         case HttpStatusCode::BadRequest:
             response_str =

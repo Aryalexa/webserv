@@ -21,9 +21,16 @@ void HttpResponse::reset_all() {
 HttpResponse::HttpResponse(Request *request) : _request(request) {
   reset_all();
   assert(request != NULL);
-  if (request->getMethod() == "GET") 
+  if (request->getMethod() == "GET") {
     handle_GET();
-  else if (request->getMethod() == "POST") {
+  } else if (request->getMethod() == "HEAD") {
+    // Reuse GET handling to compute status and headers (incl. Content-Length),
+    // but do not keep the body for HEAD responses.
+    handle_GET();
+    // keep headers/content-length as set by handle_GET, but drop the body
+    _body.clear();
+    // headers already set (content_length etc.), leave them intact
+  } else if (request->getMethod() == "POST") {
     handle_POST();
   }
   else if (request->getMethod() == "DELETE" ) {
